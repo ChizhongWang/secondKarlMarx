@@ -12,8 +12,9 @@ BASE_MODEL_CONFIG = {
 # 训练数据集配置
 DATASET_CONFIG = {
     "dataset_name": "ChizhongWang/secondKarlMarx-sft",
-    "text_field": "text",  # 根据您的数据集结构调整
-    "format": "messages",  # 可选: "instruction", "messages", "text"
+    "prompt_field": "prompt",  # 提示字段
+    "content_field": "content",  # 内容字段
+    "format": "prompt_content",  # 使用自定义格式
     "max_samples": 2,  # 仅使用2个样本进行极简MVP测试
     "streaming": False,
 }

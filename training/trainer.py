@@ -129,8 +129,12 @@ def train():
         split=DATASET_CONFIG.get("split"),
         streaming=DATASET_CONFIG.get("streaming", False),
         max_samples=DATASET_CONFIG.get("max_samples"),
-        format=DATASET_CONFIG.get("format", "instruction"),
-        preprocessing_num_workers=8,  # 增加预处理工作线程
+        format=DATASET_CONFIG.get("format", "prompt_content"),
+        prompt_field=DATASET_CONFIG.get("prompt_field", "prompt"),
+        content_field=DATASET_CONFIG.get("content_field", "content"),
+        preprocessing_num_workers=8,
+        tokenizer=tokenizer,
+        max_seq_length=TRAINING_CONFIG.get("max_seq_length", 8192),
     )
     
     # 创建训练参数
