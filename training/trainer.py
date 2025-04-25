@@ -121,8 +121,8 @@ def train(local_rank=None, deepspeed_config=None, zero_stage=None):
     
     Args:
         local_rank: 本地排名，用于分布式训练
-        deepspeed_config: DeepSpeed配置文件路径
-        zero_stage: ZeRO优化阶段（覆盖配置文件中的设置）
+        deepspeed_config: DeepSpeed配置文件路径 (不使用)
+        zero_stage: ZeRO优化阶段 (不使用)
     
     Returns:
         final_model_path: 最终模型保存路径
@@ -158,28 +158,18 @@ def train(local_rank=None, deepspeed_config=None, zero_stage=None):
     # 创建训练参数
     training_args_dict = TRAINING_CONFIG.copy()
     
-    # 处理DeepSpeed配置
-    if deepspeed_config:
-        logger.info(f"Using DeepSpeed config from: {deepspeed_config}")
-        training_args_dict["deepspeed"] = deepspeed_config
+    # 移除DeepSpeed相关配置，使用PyTorch原生分布式
+    if "deepspeed" in training_args_dict:
+        del training_args_dict["deepspeed"]
     
-    # 如果指定了ZeRO阶段，覆盖配置
-    if zero_stage is not None:
-        logger.info(f"Overriding ZeRO stage to: {zero_stage}")
-        if "deepspeed" not in training_args_dict:
-            training_args_dict["deepspeed"] = {}
-        if isinstance(training_args_dict["deepspeed"], str):
-            # 如果deepspeed是字符串（文件路径），我们不能直接修改
-            logger.warning("Cannot override ZeRO stage when deepspeed config is a file path")
-        else:
-            training_args_dict["deepspeed"]["zero_optimization"] = {"stage": zero_stage}
+    # 确保使用正确的分布式设置
+    training_args_dict["ddp_backend"] = "nccl"  # 使用NCCL后端以提高多GPU性能
     
     training_args = TrainingArguments(
         **training_args_dict,
         remove_unused_columns=False,  # 保留所有列
         label_names=["labels"],
         logging_first_step=True,
-        ddp_backend="nccl",  # 使用NCCL后端以提高多GPU性能
     )
     
     # 创建SFT训练器
@@ -190,7 +180,7 @@ def train(local_rank=None, deepspeed_config=None, zero_stage=None):
         eval_dataset=eval_dataset,
         tokenizer=tokenizer,
         packing=True,  # 启用序列打包以提高效率
-        max_seq_length=TRAINING_CONFIG.get("max_seq_length", 2048),
+        max_seq_length=TRAINING_CONFIG.get("max_seq_length", 8192),
         dataset_text_field=DATASET_CONFIG.get("text_field", "text"),
     )
     

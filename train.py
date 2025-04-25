@@ -7,6 +7,7 @@ import sys
 import argparse
 import logging
 from training.trainer import train
+import torch
 
 # 配置日志
 logging.basicConfig(
@@ -24,23 +25,22 @@ def parse_args():
         default=-1,
         help="Local rank for distributed training (-1: not distributed)",
     )
-    # 添加DeepSpeed参数支持
+    # 保留DeepSpeed参数以兼容现有代码，但不实际使用它们
     parser.add_argument(
         "--deepspeed",
         type=str,
-        help="DeepSpeed configuration file path",
+        help="DeepSpeed configuration file path (not used in simple mode)",
     )
-    # 添加其他可能的DeepSpeed相关参数
     parser.add_argument(
         "--deepspeed_config",
         type=str,
-        help="DeepSpeed configuration file path (alternative to --deepspeed)",
+        help="DeepSpeed configuration file path (alternative to --deepspeed, not used in simple mode)",
     )
     parser.add_argument(
         "--zero_stage",
         type=int,
         default=None,
-        help="ZeRO optimization stage (overrides config file)",
+        help="ZeRO optimization stage (not used in simple mode)",
     )
     return parser.parse_args()
 
@@ -50,22 +50,17 @@ def main():
     # 设置环境变量
     if args.local_rank != -1:
         logger.info(f"Running in distributed mode with local_rank: {args.local_rank}")
-    
-    # 准备DeepSpeed配置
-    deepspeed_config = None
-    if args.deepspeed:
-        logger.info(f"Using DeepSpeed with config: {args.deepspeed}")
-        deepspeed_config = args.deepspeed
-    elif args.deepspeed_config:
-        logger.info(f"Using DeepSpeed with config: {args.deepspeed_config}")
-        deepspeed_config = args.deepspeed_config
+        # 初始化PyTorch分布式
+        if not torch.distributed.is_initialized():
+            torch.distributed.init_process_group(backend="nccl")
     
     # 执行训练
     try:
         final_model_path = train(
             local_rank=args.local_rank,
-            deepspeed_config=deepspeed_config,
-            zero_stage=args.zero_stage
+            # 传递空的DeepSpeed配置
+            deepspeed_config=None,
+            zero_stage=None
         )
         logger.info(f"Training completed successfully! Model saved to: {final_model_path}")
     except Exception as e:
