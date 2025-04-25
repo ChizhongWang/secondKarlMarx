@@ -6,6 +6,7 @@ import logging
 from typing import Dict, List, Optional, Union
 from datasets import load_dataset, Dataset
 from transformers import AutoTokenizer
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,9 @@ def load_sft_dataset(
     """
     logger.info(f"Loading dataset: {dataset_name}")
     
+    # 设置Hugging Face令牌（如果有）
+    token = os.environ.get("HF_TOKEN", None)
+    
     # 加载数据集
     if streaming:
         ds = load_dataset(
@@ -51,7 +55,7 @@ def load_sft_dataset(
             dataset_config_name,
             split=split,
             streaming=True,
-            use_auth_token=True,
+            token=token,  # 使用token参数替代use_auth_token
         )
         # 流式数据集不支持分割，因此我们手动分割
         ds = ds.shuffle(seed=42, buffer_size=10000)
@@ -62,7 +66,7 @@ def load_sft_dataset(
             dataset_name,
             dataset_config_name,
             split=split,
-            use_auth_token=True,
+            token=token,  # 使用token参数替代use_auth_token
         )
         
         # 如果提供了最大样本数，则截取数据集
@@ -96,12 +100,12 @@ def load_sft_dataset(
             prompts = examples[prompt_field]
             contents = examples[content_field]
             
-        # 组合提示和内容
-        combined_texts = []
-        for prompt, content in zip(prompts, contents):
-            # 为Qwen模型格式化提示和内容 - 使用Qwen2.5的chat模板
-            text = f"<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n{content}<|im_end|>"
-            combined_texts.append(text) 
+            # 组合提示和内容
+            combined_texts = []
+            for prompt, content in zip(prompts, contents):
+                # 为Qwen模型格式化提示和内容 - 使用Qwen2.5的chat模板
+                text = f"<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n{content}<|im_end|>"
+                combined_texts.append(text)
             
             # 分词
             tokenized = tokenizer(
