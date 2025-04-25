@@ -11,17 +11,19 @@ BASE_MODEL_CONFIG = {
 
 # 训练数据集配置
 DATASET_CONFIG = {
-    "dataset_name": "your-username/secondKarlMarx-dataset",  # 替换为您的Hugging Face数据集
-    "text_column": "text",
-    "use_auth_token": True,
+    "dataset_name": "ChizhongWang/secondKarlMarx-sft",
+    "text_field": "text",  # 根据您的数据集结构调整
+    "format": "messages",  # 可选: "instruction", "messages", "text"
+    "max_samples": None,  # 设置为None使用全部数据
+    "streaming": False,
 }
 
 # 训练配置
 TRAINING_CONFIG = {
     "output_dir": "./results",
     "num_train_epochs": 3,
-    "per_device_train_batch_size": 4,  # 每个GPU的批处理大小
-    "gradient_accumulation_steps": 4,  # 梯度累积步数
+    "per_device_train_batch_size": 2,  # 减小批处理大小以适应更长的序列
+    "gradient_accumulation_steps": 8,  # 增加梯度累积步数以保持有效批量大小
     "learning_rate": 2e-5,
     "weight_decay": 0.01,
     "warmup_ratio": 0.03,
@@ -34,7 +36,7 @@ TRAINING_CONFIG = {
     "gradient_checkpointing": True,  # 启用梯度检查点以节省内存
     "optim": "adamw_torch",
     "seed": 42,
-    "max_seq_length": 2048,  # 序列长度
+    "max_seq_length": 4096,  # 增加到4096以处理更长的文本
     "max_steps": -1,  # 使用epoch而不是steps
     "save_strategy": "steps",
     "evaluation_strategy": "steps",
