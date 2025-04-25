@@ -76,7 +76,8 @@ def setup_model_and_tokenizer():
         trust_remote_code=BASE_MODEL_CONFIG["trust_remote_code"],
         token=BASE_MODEL_CONFIG["use_auth_token"],
         use_cache=False,  # 训练时禁用KV缓存以节省内存
-        # 不使用任何与张量并行相关的参数
+        use_flash_attention_2=True,  # 启用FlashAttention-2以加速训练
+        # 注意：张量并行现在由环境中的PyTorch 2.5+自动处理
     )
     
     # 应用LoRA适配器进行参数高效微调
