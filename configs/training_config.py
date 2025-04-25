@@ -14,38 +14,38 @@ DATASET_CONFIG = {
     "dataset_name": "ChizhongWang/secondKarlMarx-sft",
     "text_field": "text",  # 根据您的数据集结构调整
     "format": "messages",  # 可选: "instruction", "messages", "text"
-    "max_samples": None,  # 设置为None使用全部数据
+    "max_samples": 2,  # 仅使用2个样本进行极简MVP测试
     "streaming": False,
 }
 
 # 训练配置
 TRAINING_CONFIG = {
     "output_dir": "./results",
-    "num_train_epochs": 3,
-    "per_device_train_batch_size": 2,  # 减小批处理大小以适应更长的序列
-    "gradient_accumulation_steps": 8,  # 增加梯度累积步数以保持有效批量大小
+    "num_train_epochs": 1,  # 仅训练1个epoch用于测试
+    "per_device_train_batch_size": 2,
+    "gradient_accumulation_steps": 8,
     "learning_rate": 2e-5,
     "weight_decay": 0.01,
     "warmup_ratio": 0.03,
-    "logging_steps": 10,
-    "save_steps": 500,
-    "save_total_limit": 3,
+    "logging_steps": 5,
+    "save_steps": 50,
+    "save_total_limit": 2,
     "fp16": True,
-    "bf16": False,  # 3090不支持BF16
-    "torch_compile": False,  # 可能导致内存问题，暂时禁用
-    "gradient_checkpointing": True,  # 启用梯度检查点以节省内存
+    "bf16": False,
+    "torch_compile": False,
+    "gradient_checkpointing": True,
     "optim": "adamw_torch",
     "seed": 42,
-    "max_seq_length": 4096,  # 增加到4096以处理更长的文本
-    "max_steps": -1,  # 使用epoch而不是steps
+    "max_seq_length": 1024,  # 减小序列长度以加快训练
+    "max_steps": 100,  # 限制最大步数为100
     "save_strategy": "steps",
     "evaluation_strategy": "steps",
-    "eval_steps": 500,
-    "group_by_length": True,  # 按长度分组以提高效率
-    "report_to": ["tensorboard", "wandb"],
-    "ddp_find_unused_parameters": False,  # 提高DDP效率
-    "dataloader_num_workers": 4,  # 数据加载器的工作线程数
-    "dataloader_pin_memory": True,  # 使用固定内存提高数据传输速度
+    "eval_steps": 50,
+    "group_by_length": True,
+    "report_to": ["tensorboard"],  # 移除wandb以简化测试
+    "ddp_find_unused_parameters": False,
+    "dataloader_num_workers": 2,
+    "dataloader_pin_memory": True,
 }
 
 # LoRA配置
