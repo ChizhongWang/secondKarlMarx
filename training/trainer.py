@@ -104,9 +104,14 @@ def setup_model_and_tokenizer():
     
     return model, tokenizer
 
-def train():
+def train(local_rank=None, deepspeed_config=None, zero_stage=None):
     """
     训练模型
+    
+    Args:
+        local_rank: 本地排名，用于分布式训练
+        deepspeed_config: DeepSpeed配置文件路径
+        zero_stage: ZeRO优化阶段（覆盖配置文件中的设置）
     
     Returns:
         final_model_path: 最终模型保存路径
@@ -115,6 +120,8 @@ def train():
     set_seed(TRAINING_CONFIG.get("seed", 42))
     
     # 设置本地排名
+    if local_rank is not None:
+        os.environ["LOCAL_RANK"] = str(local_rank)
     local_rank = int(os.environ.get("LOCAL_RANK", -1))
     is_main_process = local_rank == -1 or local_rank == 0
     
@@ -138,8 +145,26 @@ def train():
     )
     
     # 创建训练参数
+    training_args_dict = TRAINING_CONFIG.copy()
+    
+    # 处理DeepSpeed配置
+    if deepspeed_config:
+        logger.info(f"Using DeepSpeed config from: {deepspeed_config}")
+        training_args_dict["deepspeed"] = deepspeed_config
+    
+    # 如果指定了ZeRO阶段，覆盖配置
+    if zero_stage is not None:
+        logger.info(f"Overriding ZeRO stage to: {zero_stage}")
+        if "deepspeed" not in training_args_dict:
+            training_args_dict["deepspeed"] = {}
+        if isinstance(training_args_dict["deepspeed"], str):
+            # 如果deepspeed是字符串（文件路径），我们不能直接修改
+            logger.warning("Cannot override ZeRO stage when deepspeed config is a file path")
+        else:
+            training_args_dict["deepspeed"]["zero_optimization"] = {"stage": zero_stage}
+    
     training_args = TrainingArguments(
-        **TRAINING_CONFIG,
+        **training_args_dict,
         remove_unused_columns=False,  # 保留所有列
         label_names=["labels"],
         logging_first_step=True,

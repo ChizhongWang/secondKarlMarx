@@ -24,6 +24,24 @@ def parse_args():
         default=-1,
         help="Local rank for distributed training (-1: not distributed)",
     )
+    # 添加DeepSpeed参数支持
+    parser.add_argument(
+        "--deepspeed",
+        type=str,
+        help="DeepSpeed configuration file path",
+    )
+    # 添加其他可能的DeepSpeed相关参数
+    parser.add_argument(
+        "--deepspeed_config",
+        type=str,
+        help="DeepSpeed configuration file path (alternative to --deepspeed)",
+    )
+    parser.add_argument(
+        "--zero_stage",
+        type=int,
+        default=None,
+        help="ZeRO optimization stage (overrides config file)",
+    )
     return parser.parse_args()
 
 def main():
@@ -33,9 +51,22 @@ def main():
     if args.local_rank != -1:
         logger.info(f"Running in distributed mode with local_rank: {args.local_rank}")
     
+    # 准备DeepSpeed配置
+    deepspeed_config = None
+    if args.deepspeed:
+        logger.info(f"Using DeepSpeed with config: {args.deepspeed}")
+        deepspeed_config = args.deepspeed
+    elif args.deepspeed_config:
+        logger.info(f"Using DeepSpeed with config: {args.deepspeed_config}")
+        deepspeed_config = args.deepspeed_config
+    
     # 执行训练
     try:
-        final_model_path = train()
+        final_model_path = train(
+            local_rank=args.local_rank,
+            deepspeed_config=deepspeed_config,
+            zero_stage=args.zero_stage
+        )
         logger.info(f"Training completed successfully! Model saved to: {final_model_path}")
     except Exception as e:
         logger.error(f"Training failed with error: {e}")
