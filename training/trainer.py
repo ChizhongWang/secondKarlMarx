@@ -75,31 +75,43 @@ def setup_model_and_tokenizer():
         ),
         trust_remote_code=BASE_MODEL_CONFIG["trust_remote_code"],
         token=BASE_MODEL_CONFIG["use_auth_token"],
+        use_cache=False,  # 训练时禁用KV缓存以节省内存
+        use_flash_attention_2=True,  # 使用FlashAttention-2以加速训练
+        # 禁用张量并行以解决PyTorch版本兼容性问题
+        tensor_parallel_size=1,  # 设置为1表示禁用张量并行
     )
+    
+    # 应用LoRA适配器进行参数高效微调
+    logger.info("Applying LoRA adapter for parameter-efficient fine-tuning")
     
     # 为量化训练准备模型
     model = prepare_model_for_kbit_training(model)
     
-    # 应用LoRA - 为Qwen模型调整target_modules
-    logger.info("Applying LoRA adapters")
-    target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+    # 根据模型类型选择目标模块
+    target_modules = None
+    model_type = model.config.model_type.lower() if hasattr(model.config, "model_type") else ""
     
-    # Qwen2.5特定的target_modules
-    if "Qwen" in BASE_MODEL_CONFIG["model_name_or_path"]:
+    # 为Qwen2.5模型设置特定的目标模块
+    if "qwen" in model_type:
         target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj", "w1", "w2", "w3"]
+        logger.info(f"Using Qwen-specific target modules: {target_modules}")
+    else:
+        # 默认LoRA目标模块
+        target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
+        logger.info(f"Using default target modules: {target_modules}")
     
-    lora_config = LoraConfig(
+    # 创建LoRA配置
+    peft_config = LoraConfig(
         r=LORA_CONFIG["r"],
         lora_alpha=LORA_CONFIG["lora_alpha"],
+        target_modules=target_modules,
         lora_dropout=LORA_CONFIG["lora_dropout"],
         bias=LORA_CONFIG["bias"],
         task_type=LORA_CONFIG["task_type"],
-        target_modules=target_modules,
-        fan_in_fan_out=LORA_CONFIG.get("fan_in_fan_out", False),
     )
-    model = get_peft_model(model, lora_config)
     
-    # 打印模型可训练参数数量
+    # 应用LoRA适配器
+    model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
     
     return model, tokenizer
