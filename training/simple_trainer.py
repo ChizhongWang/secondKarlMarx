@@ -21,7 +21,7 @@ from configs.training_config import (
     TRAINING_CONFIG,
     LORA_CONFIG,
 )
-from training.data_utils import load_sft_dataset
+from training.data_utils_simple import load_sft_dataset
 
 logger = logging.getLogger(__name__)
 
