@@ -4,7 +4,7 @@
 
 # 基础模型配置
 BASE_MODEL_CONFIG = {
-    "model_name_or_path": "Qwen/Qwen2.5-7B-Instruct",
+    "model_name_or_path": "Qwen/Qwen2.5-7B-Instruct-1M",
     "trust_remote_code": True,
     "use_auth_token": True,
 }
@@ -36,7 +36,7 @@ TRAINING_CONFIG = {
     "gradient_checkpointing": True,
     "optim": "adamw_torch",
     "seed": 42,
-    "max_seq_length": 1024,  # 减小序列长度以加快训练
+    "max_seq_length": 8192,  # 增加序列长度以利用1M模型的能力
     "max_steps": 100,  # 限制最大步数为100
     "save_strategy": "steps",
     "evaluation_strategy": "steps",
