@@ -55,6 +55,7 @@ def setup_model_and_tokenizer():
         use_fast=True,
         trust_remote_code=BASE_MODEL_CONFIG["trust_remote_code"],
         token=BASE_MODEL_CONFIG["use_auth_token"],
+        padding_side="right",  # Qwen模型使用right padding
     )
     
     # 确保分词器有正确的EOS和PAD token
@@ -79,15 +80,21 @@ def setup_model_and_tokenizer():
     # 为量化训练准备模型
     model = prepare_model_for_kbit_training(model)
     
-    # 应用LoRA
+    # 应用LoRA - 为Qwen模型调整target_modules
     logger.info("Applying LoRA adapters")
+    target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+    
+    # Qwen2.5特定的target_modules
+    if "Qwen" in BASE_MODEL_CONFIG["model_name_or_path"]:
+        target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj", "w1", "w2", "w3"]
+    
     lora_config = LoraConfig(
         r=LORA_CONFIG["r"],
         lora_alpha=LORA_CONFIG["lora_alpha"],
         lora_dropout=LORA_CONFIG["lora_dropout"],
         bias=LORA_CONFIG["bias"],
         task_type=LORA_CONFIG["task_type"],
-        target_modules=LORA_CONFIG["target_modules"],
+        target_modules=target_modules,
         fan_in_fan_out=LORA_CONFIG.get("fan_in_fan_out", False),
     )
     model = get_peft_model(model, lora_config)
