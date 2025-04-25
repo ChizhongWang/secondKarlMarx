@@ -5,7 +5,7 @@
 import logging
 import os
 from typing import Dict, List, Optional, Union
-from datasets import load_dataset, Dataset
+from datasets import load_dataset, Dataset, DatasetDict
 from transformers import AutoTokenizer
 
 logger = logging.getLogger(__name__)
@@ -69,20 +69,36 @@ def load_sft_dataset(
             token=token,  # 使用token参数替代use_auth_token
         )
         
-        # 如果提供了最大样本数，则截取数据集
-        if max_samples is not None:
-            ds = ds.select(range(min(max_samples, len(ds))))
-        
-        # 分割数据集为训练集和验证集
-        if "train" in ds:
-            train_dataset = ds["train"]
-            eval_dataset = ds.get("validation", None)
+        # 处理DatasetDict和Dataset两种情况
+        if isinstance(ds, DatasetDict):
+            # 如果是DatasetDict，直接获取训练集和验证集
+            train_dataset = ds["train"] if "train" in ds else None
+            eval_dataset = ds["validation"] if "validation" in ds else ds.get("test", None)
+            
+            # 如果没有预定义的训练集，但有其他分割，则使用第一个分割作为训练集
+            if train_dataset is None and len(ds) > 0:
+                first_key = next(iter(ds.keys()))
+                train_dataset = ds[first_key]
+                logger.info(f"No 'train' split found, using '{first_key}' as training data")
         else:
+            # 如果是Dataset，则手动分割
+            train_dataset = ds
+            eval_dataset = None
+        
+        # 如果提供了最大样本数，则截取数据集
+        if max_samples is not None and train_dataset is not None:
+            train_dataset = train_dataset.select(range(min(max_samples, len(train_dataset))))
+        
+        # 如果没有验证集但有训练集，从训练集中分出一部分作为验证集
+        if eval_dataset is None and train_dataset is not None and not streaming:
             # 如果没有预定义的分割，则手动分割
-            ds = ds.shuffle(seed=42)
-            split_dataset = ds.train_test_split(test_size=0.05)
+            train_dataset = train_dataset.shuffle(seed=42)
+            split_dataset = train_dataset.train_test_split(test_size=0.05)
             train_dataset = split_dataset["train"]
             eval_dataset = split_dataset["test"]
+    
+    if train_dataset is None:
+        raise ValueError(f"Could not find a suitable training dataset in {dataset_name}")
     
     logger.info(f"Dataset loaded with {len(train_dataset) if not streaming else 'streaming'} training examples")
     if eval_dataset:
