@@ -21,6 +21,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Train secondKarlMarx model (simple version)")
     parser.add_argument(
         "--local_rank",
+        "--local-rank",  # 添加连字符版本作为别名
         type=int,
         default=-1,
         help="Local rank for distributed training (-1: not distributed)",
