@@ -12,6 +12,7 @@ from transformers import (
     TrainingArguments,
     DataCollatorForLanguageModeling,
     set_seed,
+    BitsAndBytesConfig,
 )
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from configs.training_config import (
@@ -47,16 +48,19 @@ def setup_model_and_tokenizer():
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     
+    # 创建4位量化配置
+    quantization_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_compute_dtype=torch.float16,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4",
+    )
+    
     # 加载模型 - 使用4位量化以节省内存
     model = AutoModelForCausalLM.from_pretrained(
         BASE_MODEL_CONFIG["model_name_or_path"],
-        load_in_4bit=True,  # 使用4位量化
+        quantization_config=quantization_config,
         device_map="auto",  # 自动分配到可用设备
-        quantization_config=torch.quantization.quantize_dynamic(
-            torch.nn.Linear,
-            {torch.nn.Linear},
-            dtype=torch.qint8
-        ),
         trust_remote_code=BASE_MODEL_CONFIG["trust_remote_code"],
         token=BASE_MODEL_CONFIG["use_auth_token"],
         use_cache=False,  # 训练时禁用KV缓存以节省内存
