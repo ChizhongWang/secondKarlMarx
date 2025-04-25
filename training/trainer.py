@@ -76,9 +76,7 @@ def setup_model_and_tokenizer():
         trust_remote_code=BASE_MODEL_CONFIG["trust_remote_code"],
         token=BASE_MODEL_CONFIG["use_auth_token"],
         use_cache=False,  # 训练时禁用KV缓存以节省内存
-        use_flash_attention_2=True,  # 使用FlashAttention-2以加速训练
-        # 禁用张量并行以解决PyTorch版本兼容性问题
-        tensor_parallel_size=1,  # 设置为1表示禁用张量并行
+        # 不使用任何与张量并行相关的参数
     )
     
     # 应用LoRA适配器进行参数高效微调
