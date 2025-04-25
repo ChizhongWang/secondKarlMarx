@@ -4,9 +4,9 @@
 
 # 基础模型配置
 BASE_MODEL_CONFIG = {
-    "model_name_or_path": "meta-llama/Llama-3-8B",  # 可以替换为其他模型
-    "use_auth_token": True,  # 如果需要访问私有模型
+    "model_name_or_path": "Qwen/Qwen2.5-7B-Instruct",
     "trust_remote_code": True,
+    "use_auth_token": True,
 }
 
 # 训练数据集配置
