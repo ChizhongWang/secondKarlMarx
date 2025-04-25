@@ -22,8 +22,8 @@ DATASET_CONFIG = {
 TRAINING_CONFIG = {
     "output_dir": "./results",
     "num_train_epochs": 1,  # 仅训练1个epoch用于测试
-    "per_device_train_batch_size": 2,
-    "gradient_accumulation_steps": 8,
+    "per_device_train_batch_size": 3,  # 为4090优化的批处理大小
+    "gradient_accumulation_steps": 4,  # 调整梯度累积步数
     "learning_rate": 2e-5,
     "weight_decay": 0.01,
     "warmup_ratio": 0.03,
