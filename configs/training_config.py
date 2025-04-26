@@ -4,7 +4,7 @@
 
 # 基础模型配置
 BASE_MODEL_CONFIG = {
-    "model_name_or_path": "Qwen/Qwen2.5-7B-Instruct-1M",  # 恢复使用1M版本
+    "model_name_or_path": "Qwen/Qwen2.5-7B-Instruct",  # 改回标准版本，不使用1M版本
     "trust_remote_code": True,
     "use_auth_token": True,  # 如果需要访问私有模型，请设置为True
 }
@@ -23,7 +23,7 @@ DATASET_CONFIG = {
 TRAINING_CONFIG = {
     "output_dir": "./results",
     "num_train_epochs": 1,  # 仅训练1个epoch用于测试
-    "per_device_train_batch_size": 3,  # 为4090优化的批处理大小
+    "per_device_train_batch_size": 2,  # 减小批处理大小以减少内存使用
     "gradient_accumulation_steps": 4,  # 调整梯度累积步数
     "learning_rate": 2e-5,
     "weight_decay": 0.01,
@@ -37,7 +37,7 @@ TRAINING_CONFIG = {
     "gradient_checkpointing": True,
     "optim": "adamw_torch",
     "seed": 42,
-    "max_seq_length": 8192,  # 恢复为8192以利用1M模型的长上下文能力
+    "max_seq_length": 2048,  # 减小序列长度以减少内存使用
     "max_steps": 100,  # 限制最大步数为100
     "save_strategy": "steps",
     "evaluation_strategy": "steps",
