@@ -77,7 +77,6 @@ def setup_model_and_tokenizer():
         token=BASE_MODEL_CONFIG["use_auth_token"],
         use_cache=False,  # 训练时禁用KV缓存以节省内存
         use_flash_attention_2=True,  # 启用FlashAttention-2以加速训练
-        # 注意：张量并行现在由环境中的PyTorch 2.5+自动处理
     )
     
     # 应用LoRA适配器进行参数高效微调
@@ -121,8 +120,8 @@ def train(local_rank=None, deepspeed_config=None, zero_stage=None):
     
     Args:
         local_rank: 本地排名，用于分布式训练
-        deepspeed_config: DeepSpeed配置文件路径 (不使用)
-        zero_stage: ZeRO优化阶段 (不使用)
+        deepspeed_config: DeepSpeed配置
+        zero_stage: ZeRO优化阶段
     
     Returns:
         final_model_path: 最终模型保存路径
@@ -158,9 +157,29 @@ def train(local_rank=None, deepspeed_config=None, zero_stage=None):
     # 创建训练参数
     training_args_dict = TRAINING_CONFIG.copy()
     
-    # 移除DeepSpeed相关配置，使用PyTorch原生分布式
-    if "deepspeed" in training_args_dict:
-        del training_args_dict["deepspeed"]
+    # 处理DeepSpeed配置
+    if deepspeed_config:
+        logger.info("Using provided DeepSpeed configuration")
+        # 如果提供了deepspeed_config，使用它
+        training_args_dict["deepspeed"] = deepspeed_config
+    elif "deepspeed" in training_args_dict:
+        # 否则使用配置文件中的默认设置
+        logger.info("Using default DeepSpeed configuration from training config")
+    else:
+        # 如果没有DeepSpeed配置，移除相关设置
+        logger.info("No DeepSpeed configuration provided, using PyTorch native distributed")
+        if "deepspeed" in training_args_dict:
+            del training_args_dict["deepspeed"]
+    
+    # 设置ZeRO阶段（如果提供）
+    if zero_stage is not None:
+        logger.info(f"Setting ZeRO stage to {zero_stage}")
+        if "deepspeed" not in training_args_dict:
+            training_args_dict["deepspeed"] = {}
+        if isinstance(training_args_dict["deepspeed"], dict) and "zero_optimization" not in training_args_dict["deepspeed"]:
+            training_args_dict["deepspeed"]["zero_optimization"] = {}
+        if isinstance(training_args_dict["deepspeed"], dict):
+            training_args_dict["deepspeed"]["zero_optimization"]["stage"] = zero_stage
     
     # 确保使用正确的分布式设置
     training_args_dict["ddp_backend"] = "nccl"  # 使用NCCL后端以提高多GPU性能

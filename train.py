@@ -4,6 +4,7 @@
 
 import os
 import sys
+import json
 import argparse
 import logging
 from training.trainer import train
@@ -25,22 +26,21 @@ def parse_args():
         default=-1,
         help="Local rank for distributed training (-1: not distributed)",
     )
-    # 保留DeepSpeed参数以兼容现有代码，但不实际使用它们
     parser.add_argument(
         "--deepspeed",
         type=str,
-        help="DeepSpeed configuration file path (not used in simple mode)",
+        help="DeepSpeed configuration file path",
     )
     parser.add_argument(
         "--deepspeed_config",
         type=str,
-        help="DeepSpeed configuration file path (alternative to --deepspeed, not used in simple mode)",
+        help="DeepSpeed configuration file path (alternative to --deepspeed)",
     )
     parser.add_argument(
         "--zero_stage",
         type=int,
         default=None,
-        help="ZeRO optimization stage (not used in simple mode)",
+        help="ZeRO optimization stage",
     )
     return parser.parse_args()
 
@@ -54,13 +54,23 @@ def main():
         if not torch.distributed.is_initialized():
             torch.distributed.init_process_group(backend="nccl")
     
+    # 处理DeepSpeed配置
+    deepspeed_config = None
+    if args.deepspeed:
+        logger.info(f"Loading DeepSpeed config from: {args.deepspeed}")
+        with open(args.deepspeed, 'r') as f:
+            deepspeed_config = json.load(f)
+    elif args.deepspeed_config:
+        logger.info(f"Loading DeepSpeed config from: {args.deepspeed_config}")
+        with open(args.deepspeed_config, 'r') as f:
+            deepspeed_config = json.load(f)
+    
     # 执行训练
     try:
         final_model_path = train(
             local_rank=args.local_rank,
-            # 传递空的DeepSpeed配置
-            deepspeed_config=None,
-            zero_stage=None
+            deepspeed_config=deepspeed_config,
+            zero_stage=args.zero_stage
         )
         logger.info(f"Training completed successfully! Model saved to: {final_model_path}")
     except Exception as e:
