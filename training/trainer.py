@@ -158,6 +158,10 @@ def train(local_rank=None, deepspeed_config=None, zero_stage=None):
     # 创建训练参数
     training_args_dict = TRAINING_CONFIG.copy()
     
+    # 从训练参数中移除 max_seq_length，因为它应该在 SFTTrainer 中使用
+    if "max_seq_length" in training_args_dict:
+        del training_args_dict["max_seq_length"]
+    
     # 处理DeepSpeed配置
     if deepspeed_config:
         logger.info("Using provided DeepSpeed configuration")
