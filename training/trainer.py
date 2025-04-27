@@ -47,27 +47,45 @@ def setup_model_and_tokenizer():
         model: 加载的模型
         tokenizer: 加载的分词器
     """
+    # 获取本地排名
+    local_rank = int(os.environ.get("LOCAL_RANK", "0"))
+    logger.info(f"Setting up model on rank {local_rank}")
+    
+    # 设置当前设备
+    if torch.cuda.is_available():
+        torch.cuda.set_device(local_rank)
+        device = torch.device(f"cuda:{local_rank}")
+        logger.info(f"Using GPU {local_rank}")
+    else:
+        device = torch.device("cpu")
+        logger.info("Using CPU")
+    
     logger.info(f"Loading base model: {BASE_MODEL_CONFIG['model_name_or_path']}")
     
-    # 加载分词器 - 使用官方示例的方式
+    # 加载分词器
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_CONFIG["model_name_or_path"])
     
     # 确保分词器有正确的EOS和PAD token
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     
-    # 加载模型 - 使用官方示例的方式
+    # 加载模型 - 使用8位量化以减少内存使用
     model = AutoModelForCausalLM.from_pretrained(
         BASE_MODEL_CONFIG["model_name_or_path"],
-        device_map="auto",  # 自动分配到可用设备
-        torch_dtype=torch.float16  # 使用半精度浮点数以减少内存使用
+        load_in_8bit=True,  # 使用8位量化而不是16位以减少内存使用
+        device_map={"": local_rank},  # 将模型分配到当前GPU
+        torch_dtype=torch.float16
     )
     
     # 应用LoRA适配器进行参数高效微调
     logger.info("Applying LoRA adapter for parameter-efficient fine-tuning")
     
-    # 为量化训练准备模型
-    model = prepare_model_for_kbit_training(model)
+    # 为量化训练准备模型 - 添加错误处理
+    try:
+        model = prepare_model_for_kbit_training(model)
+    except Exception as e:
+        logger.warning(f"Error in prepare_model_for_kbit_training: {e}")
+        logger.info("Proceeding without prepare_model_for_kbit_training")
     
     # 为Qwen2.5模型设置特定的目标模块
     target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
