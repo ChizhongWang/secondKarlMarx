@@ -69,18 +69,36 @@ def load_sft_dataset(
             token=token,  # 使用token参数替代use_auth_token
         )
         
-        # 如果提供了最大样本数，则截取数据集
-        if max_samples is not None:
-            ds = ds.select(range(min(max_samples, len(ds))))
-        
-        # 分割数据集为训练集和验证集
-        if "train" in ds:
-            train_dataset = ds["train"]
-            eval_dataset = ds.get("validation", None)
+        # 检查ds是否为DatasetDict
+        if isinstance(ds, dict):
+            logger.info("Dataset loaded as DatasetDict")
+            # 如果提供了最大样本数，则截取数据集
+            if "train" in ds:
+                train_dataset = ds["train"]
+                if max_samples is not None:
+                    train_dataset = train_dataset.select(range(min(max_samples, len(train_dataset))))
+                eval_dataset = ds.get("validation", None)
+                if eval_dataset and max_samples is not None:
+                    eval_dataset = eval_dataset.select(range(min(max_samples, len(eval_dataset))))
+            else:
+                # 如果没有预定义的分割，则使用第一个键
+                first_key = next(iter(ds.keys()))
+                logger.info(f"No 'train' split found, using '{first_key}' split")
+                dataset = ds[first_key]
+                if max_samples is not None:
+                    dataset = dataset.select(range(min(max_samples, len(dataset))))
+                # 手动分割
+                split_dataset = dataset.train_test_split(test_size=0.05, seed=42)
+                train_dataset = split_dataset["train"]
+                eval_dataset = split_dataset["test"]
         else:
-            # 如果没有预定义的分割，则手动分割
-            ds = ds.shuffle(seed=42)
-            split_dataset = ds.train_test_split(test_size=0.05)
+            logger.info("Dataset loaded as Dataset")
+            # 如果提供了最大样本数，则截取数据集
+            if max_samples is not None:
+                ds = ds.select(range(min(max_samples, len(ds))))
+            
+            # 分割数据集为训练集和验证集
+            split_dataset = ds.train_test_split(test_size=0.05, seed=42)
             train_dataset = split_dataset["train"]
             eval_dataset = split_dataset["test"]
     
