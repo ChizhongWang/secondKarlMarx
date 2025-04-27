@@ -49,34 +49,18 @@ def setup_model_and_tokenizer():
     """
     logger.info(f"Loading base model: {BASE_MODEL_CONFIG['model_name_or_path']}")
     
-    # 加载分词器
-    tokenizer = AutoTokenizer.from_pretrained(
-        BASE_MODEL_CONFIG["model_name_or_path"],
-        use_fast=True,
-        trust_remote_code=BASE_MODEL_CONFIG["trust_remote_code"],
-        token=BASE_MODEL_CONFIG["use_auth_token"],
-        padding_side="right",  # Qwen模型使用right padding
-    )
+    # 加载分词器 - 使用官方示例的方式
+    tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_CONFIG["model_name_or_path"])
     
     # 确保分词器有正确的EOS和PAD token
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     
-    # 加载模型 - 使用4位量化以节省内存
+    # 加载模型 - 使用官方示例的方式
     model = AutoModelForCausalLM.from_pretrained(
         BASE_MODEL_CONFIG["model_name_or_path"],
-        load_in_4bit=True,  # 使用4位量化
         device_map="auto",  # 自动分配到可用设备
-        quantization_config=transformers.BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.float16,
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_quant_type="nf4",
-        ),
-        trust_remote_code=BASE_MODEL_CONFIG["trust_remote_code"],
-        token=BASE_MODEL_CONFIG["use_auth_token"],
-        use_cache=False,  # 训练时禁用KV缓存以节省内存
-        use_flash_attention_2=True,  # 启用FlashAttention-2以加速训练
+        torch_dtype=torch.float16  # 使用半精度浮点数以减少内存使用
     )
     
     # 应用LoRA适配器进行参数高效微调
@@ -85,18 +69,9 @@ def setup_model_and_tokenizer():
     # 为量化训练准备模型
     model = prepare_model_for_kbit_training(model)
     
-    # 根据模型类型选择目标模块
-    target_modules = None
-    model_type = model.config.model_type.lower() if hasattr(model.config, "model_type") else ""
-    
     # 为Qwen2.5模型设置特定的目标模块
-    if "qwen" in model_type:
-        target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj", "w1", "w2", "w3"]
-        logger.info(f"Using Qwen-specific target modules: {target_modules}")
-    else:
-        # 默认LoRA目标模块
-        target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
-        logger.info(f"Using default target modules: {target_modules}")
+    target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+    logger.info(f"Using target modules: {target_modules}")
     
     # 创建LoRA配置
     peft_config = LoraConfig(

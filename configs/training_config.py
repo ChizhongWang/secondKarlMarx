@@ -4,9 +4,7 @@
 
 # 基础模型配置
 BASE_MODEL_CONFIG = {
-    "model_name_or_path": "Qwen/Qwen2.5-7B-Instruct",  # 改回标准版本，不使用1M版本
-    "trust_remote_code": True,
-    "use_auth_token": True,  # 如果需要访问私有模型，请设置为True
+    "model_name_or_path": "Qwen/Qwen2.5-7B-Instruct"
 }
 
 # 训练数据集配置
