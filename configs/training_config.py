@@ -15,7 +15,7 @@ DATASET_CONFIG = {
     "prompt_field": "prompt",  # 提示字段
     "content_field": "content",  # 内容字段
     "format": "prompt_content",  # 使用自定义格式
-    "max_samples": 2,  # 仅使用2个样本进行极简MVP测试
+    "max_samples": 100,  # 增加样本数量用于实际训练
     "streaming": False,
 }
 
@@ -23,7 +23,7 @@ DATASET_CONFIG = {
 TRAINING_CONFIG = {
     "output_dir": "./results",
     "num_train_epochs": 1,  # 仅训练1个epoch用于测试
-    "per_device_train_batch_size": 2,  # 减小批处理大小以减少内存使用
+    "per_device_train_batch_size": 1,  # 减小批处理大小以减少内存使用
     "gradient_accumulation_steps": 4,  # 调整梯度累积步数
     "learning_rate": 2e-5,
     "weight_decay": 0.01,
@@ -37,7 +37,7 @@ TRAINING_CONFIG = {
     "gradient_checkpointing": True,
     "optim": "adamw_torch",
     "seed": 42,
-    "max_seq_length": 2048,  # 减小序列长度以减少内存使用
+    "max_seq_length": 1024,  # 减小序列长度以减少内存使用
     "max_steps": 100,  # 限制最大步数为100
     "save_strategy": "steps",
     "evaluation_strategy": "steps",
@@ -45,18 +45,19 @@ TRAINING_CONFIG = {
     "group_by_length": True,
     "report_to": ["tensorboard"],  # 移除wandb以简化测试
     "ddp_find_unused_parameters": False,
-    "dataloader_num_workers": 2,
+    "dataloader_num_workers": 4,  # 增加数据加载器工作线程数量以适应4张GPU
     "dataloader_pin_memory": True,
 }
 
 # LoRA配置
 LORA_CONFIG = {
-    "r": 64,  # LoRA秩，更高的值可能提高性能但增加参数量
-    "lora_alpha": 128,  # LoRA alpha参数，通常设置为2*r
+    "r": 32,  # 降低LoRA秩以减少参数量
+    "lora_alpha": 64,  # LoRA alpha参数，通常设置为2*r
     "lora_dropout": 0.05,
     "bias": "none",
     "task_type": "CAUSAL_LM",
     "fan_in_fan_out": False,
+    "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],  # 指定LoRA目标模块
 }
 
 # DeepSpeed配置
