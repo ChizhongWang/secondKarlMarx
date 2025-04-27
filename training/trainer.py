@@ -69,10 +69,18 @@ def setup_model_and_tokenizer():
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     
-    # 加载模型 - 使用8位量化以减少内存使用
+    # 创建4位量化配置
+    bnb_config = transformers.BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.float16
+    )
+    
+    # 加载模型 - 使用4位量化以减少内存使用
     model = AutoModelForCausalLM.from_pretrained(
         BASE_MODEL_CONFIG["model_name_or_path"],
-        load_in_8bit=True,  # 使用8位量化而不是16位以减少内存使用
+        quantization_config=bnb_config,
         device_map={"": local_rank},  # 将模型分配到当前GPU
         torch_dtype=torch.float16
     )
