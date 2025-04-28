@@ -7,8 +7,6 @@ lora_target: q_proj,k_proj,v_proj,o_proj
 lora_rank: 8
 lora_alpha: 16
 lora_dropout: 0.1
-load_in_8bit: false
-load_in_4bit: false
 
 dataset: alpaca
 dataset_dir: ./training
