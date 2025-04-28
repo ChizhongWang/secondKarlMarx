@@ -18,6 +18,12 @@ fi
 
 export NCCL_DEBUG=INFO
 export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
+export FORCE_TORCHRUN=1
+
+# 首先准备数据集
+echo "准备数据集..."
+python prepare_dataset.py
 
 # 使用官方CLI命令
+echo "开始训练..."
 llamafactory-cli train qwen_lora_sft.yaml
