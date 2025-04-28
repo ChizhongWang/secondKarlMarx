@@ -219,6 +219,19 @@ def train(local_rank=None, deepspeed_config=None, zero_stage=None):
         original_save_strategy = training_args.save_strategy
         training_args.save_strategy = "no"
         
+        # 添加内存清理回调
+        class MemoryCleanupCallback(transformers.TrainerCallback):
+            def on_step_end(self, args, state, control, **kwargs):
+                if state.global_step % 5 == 0:  # 每5步清理一次内存
+                    import torch
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                        logger.info(f"Memory cleaned at step {state.global_step}")
+                return control
+        
+        # 添加回调
+        trainer.add_callback(MemoryCleanupCallback())
+        
         # 训练模型
         trainer.train()
         
