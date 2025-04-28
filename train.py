@@ -84,11 +84,23 @@ def main():
         raise
 
 if __name__ == "__main__":
-    # 使用正确的DeepSpeed启动方式
-    # 解析命令行参数
-    parser = deepspeed.add_config_arguments(argparse.ArgumentParser())
+    # 创建参数解析器
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--local_rank", type=int, default=-1)
+    parser.add_argument("--deepspeed", action="store_true")
+    parser.add_argument("--deepspeed_config", type=str, default="configs/ds_config.json")
     args = parser.parse_args()
     
+    # 初始化分布式训练
+    if args.local_rank != -1:
+        torch.cuda.set_device(args.local_rank)
+        torch.distributed.init_process_group(backend="nccl")
+    
+    # 加载DeepSpeed配置
+    deepspeed_config = None
+    if args.deepspeed:
+        with open(args.deepspeed_config, 'r') as f:
+            deepspeed_config = json.load(f)
+    
     # 启动训练
-    deepspeed.init_distributed()
-    train()
+    train(local_rank=args.local_rank, deepspeed_config=deepspeed_config)

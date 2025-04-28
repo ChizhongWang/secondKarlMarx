@@ -27,4 +27,5 @@ deepspeed --num_gpus=$NUM_GPUS \
     --master_port=$MASTER_PORT \
     train.py \
     --deepspeed \
-    --deepspeed_config configs/ds_config.json
+    --deepspeed_config configs/ds_config.json \
+    --local_rank $LOCAL_RANK
