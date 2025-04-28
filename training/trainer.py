@@ -97,29 +97,28 @@ def setup_model_and_tokenizer():
         logger.info("Proceeding without prepare_model_for_kbit_training")
     
     # 为Qwen2.5模型设置特定的目标模块
-    target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
-    logger.info(f"Using target modules: {target_modules}")
+    target_modules = LORA_CONFIG["target_modules"]
     
     # 创建LoRA配置
-    peft_config = LoraConfig(
+    lora_config = LoraConfig(
         r=LORA_CONFIG["r"],
         lora_alpha=LORA_CONFIG["lora_alpha"],
         target_modules=target_modules,
         lora_dropout=LORA_CONFIG["lora_dropout"],
         bias=LORA_CONFIG["bias"],
-        task_type=LORA_CONFIG["task_type"],
+        task_type=LORA_CONFIG["task_type"]
     )
     
     # 应用LoRA适配器
     try:
-        model = get_peft_model(model, peft_config)
+        model = get_peft_model(model, lora_config)
         model.print_trainable_parameters()
     except Exception as e:
         logger.error(f"Error applying LoRA adapter: {e}")
         # 尝试备用方法
         logger.info("Trying alternative approach for LoRA application")
         from peft.tuners.lora import LoraModel
-        model = LoraModel(model, peft_config, "default")
+        model = LoraModel(model, lora_config, "default")
         logger.info("LoRA adapter applied using alternative method")
     
     return model, tokenizer
