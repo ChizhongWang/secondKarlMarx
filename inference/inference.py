@@ -18,7 +18,7 @@ from peft import PeftModel, PeftConfig
 # 添加项目根目录到路径
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from configs.training_config import BASE_MODEL_CONFIG
+from configs.training_config import BASE_MODEL_CONFIG, TRAINING_CONFIG
 
 # 配置日志
 logging.basicConfig(
@@ -34,11 +34,11 @@ def load_model_and_tokenizer(
     device: Optional[str] = None,
 ) -> tuple[AutoModelForCausalLM, AutoTokenizer]:
     """
-    加载模型和分词器，支持 LoRA 权重
+    加载模型和分词器，默认加载微调后的模型
     
     Args:
         base_model_path: 基础模型路径，如果为 None 则使用配置文件中的路径
-        lora_path: LoRA 权重路径，如果为 None 则不加载 LoRA 权重
+        lora_path: LoRA 权重路径，如果为 None 则使用训练配置中的输出目录
         device: 设备类型，如果为 None 则自动选择
     
     Returns:
@@ -54,6 +54,11 @@ def load_model_and_tokenizer(
     if base_model_path is None:
         base_model_path = BASE_MODEL_CONFIG["model_name_or_path"]
     logger.info(f"Loading base model from: {base_model_path}")
+    
+    # 设置 LoRA 权重路径
+    if lora_path is None:
+        lora_path = os.path.join(TRAINING_CONFIG["output_dir"], "final_model")
+        logger.info(f"Using default LoRA path: {lora_path}")
     
     # 加载分词器
     tokenizer = AutoTokenizer.from_pretrained(
@@ -83,8 +88,8 @@ def load_model_and_tokenizer(
         torch_dtype=torch.float16,
     )
     
-    # 如果提供了 LoRA 路径，加载并合并 LoRA 权重
-    if lora_path is not None and os.path.exists(lora_path):
+    # 加载并合并 LoRA 权重
+    if os.path.exists(lora_path):
         logger.info(f"Loading LoRA weights from: {lora_path}")
         try:
             # 加载 LoRA 配置
@@ -102,7 +107,7 @@ def load_model_and_tokenizer(
             logger.error(f"Error loading LoRA weights: {e}")
             raise
     else:
-        logger.info("No LoRA weights provided, using base model only")
+        logger.warning(f"LoRA weights not found at {lora_path}, using base model only")
     
     return model, tokenizer
 
@@ -168,7 +173,7 @@ def generate_response(
 
 def main():
     """主函数"""
-    # 加载模型和分词器
+    # 加载模型和分词器（默认使用微调后的模型）
     model, tokenizer = load_model_and_tokenizer()
     
     # 测试生成
