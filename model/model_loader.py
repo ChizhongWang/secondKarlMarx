@@ -1,78 +1,79 @@
 """
-模型加载器 - 用于加载训练好的模型进行推理
+模型加载器 - 负责加载预训练模型和 LoRA 权重
 """
 
 import os
-import logging
 import torch
-from typing import Tuple, Any
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel, PeftConfig
+import logging
 
-# 配置日志
-logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    level=logging.INFO,
-)
 logger = logging.getLogger(__name__)
 
-def load_model_for_inference(model_path: str) -> Tuple[Any, Any]:
+def load_model_and_tokenizer(model_path, lora_path=None, device="cuda"):
     """
-    加载模型用于推理
+    加载模型和分词器
     
     Args:
-        model_path: 模型路径
-        
+        model_path: 基础模型路径
+        lora_path: LoRA 权重路径
+        device: 设备类型
+    
     Returns:
         model: 加载的模型
         tokenizer: 加载的分词器
     """
-    logger.info(f"Loading model from {model_path}")
-    
-    # 检查是否是LoRA模型
-    adapter_path = os.path.join(model_path, "adapter_model")
-    is_lora = os.path.exists(adapter_path)
-    
-    if is_lora:
-        logger.info("Detected LoRA model")
-        # 加载LoRA配置
-        peft_config = PeftConfig.from_pretrained(adapter_path)
-        base_model_path = peft_config.base_model_name_or_path
+    try:
+        # 加载分词器
+        logger.info(f"Loading tokenizer from {model_path}")
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_path,
+            trust_remote_code=True,
+            padding_side="left",
+            truncation_side="left"
+        )
         
         # 加载基础模型
-        logger.info(f"Loading base model from {base_model_path}")
-        model = AutoModelForCausalLM.from_pretrained(
-            base_model_path,
-            torch_dtype=torch.float16,
-            device_map="auto",
-            trust_remote_code=True,
-        )
-        
-        # 加载LoRA适配器
-        logger.info(f"Loading LoRA adapter from {adapter_path}")
-        model = PeftModel.from_pretrained(model, adapter_path)
-        
-        # 合并LoRA权重（可选）
-        # model = model.merge_and_unload()
-    else:
-        logger.info("Loading full model")
+        logger.info(f"Loading base model from {model_path}")
         model = AutoModelForCausalLM.from_pretrained(
             model_path,
+            trust_remote_code=True,
             torch_dtype=torch.float16,
             device_map="auto",
-            trust_remote_code=True,
+            use_cache=True
         )
-    
-    # 加载分词器
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
-    
-    # 确保分词器有EOS和PAD token
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    
-    # 设置为评估模式
-    model.eval()
-    
-    logger.info("Model loaded successfully")
-    return model, tokenizer
+        
+        # 如果有 LoRA 权重，加载并合并
+        if lora_path and os.path.exists(lora_path):
+            logger.info(f"Loading LoRA weights from {lora_path}")
+            try:
+                # 加载 LoRA 配置
+                peft_config = PeftConfig.from_pretrained(lora_path)
+                logger.info(f"LoRA config: {peft_config}")
+                
+                # 加载 LoRA 模型
+                model = PeftModel.from_pretrained(
+                    model,
+                    lora_path,
+                    torch_dtype=torch.float16,
+                    device_map="auto"
+                )
+                
+                # 合并 LoRA 权重到基础模型
+                logger.info("Merging LoRA weights into base model")
+                model = model.merge_and_unload()
+                
+            except Exception as e:
+                logger.error(f"Error loading LoRA weights: {str(e)}")
+                raise
+        
+        # 将模型移动到指定设备
+        if device != "auto":
+            model = model.to(device)
+        
+        logger.info("Model and tokenizer loaded successfully")
+        return model, tokenizer
+        
+    except Exception as e:
+        logger.error(f"Error loading model: {str(e)}")
+        raise

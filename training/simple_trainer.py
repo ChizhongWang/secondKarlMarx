@@ -175,7 +175,24 @@ def train_simple(local_rank=None):
     if is_main_process:
         final_model_path = os.path.join(TRAINING_CONFIG["output_dir"], "final_model")
         logger.info(f"Saving final model to {final_model_path}")
-        trainer.save_model(final_model_path)
+        
+        # 确保输出目录存在
+        os.makedirs(final_model_path, exist_ok=True)
+        
+        # 保存模型权重
+        if hasattr(model, "save_pretrained"):
+            logger.info("Saving model using save_pretrained")
+            model.save_pretrained(final_model_path)
+        else:
+            logger.warning("Model doesn't have save_pretrained method, using trainer.save_model")
+            trainer.save_model(final_model_path)
+        
+        # 保存分词器
         tokenizer.save_pretrained(final_model_path)
+        
+        # 保存训练参数
+        training_args.save_to_json(os.path.join(final_model_path, "training_args.json"))
+        
+        logger.info(f"Model saved successfully to {final_model_path}")
     
     return TRAINING_CONFIG["output_dir"]
