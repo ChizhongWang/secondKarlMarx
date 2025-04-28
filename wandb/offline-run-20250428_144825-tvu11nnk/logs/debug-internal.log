@@ -1,0 +1,15 @@
+{"time":"2025-04-28T14:48:25.472917568Z","level":"INFO","msg":"stream: starting","core version":"0.19.10","symlink path":"/home/featurize/secondKarlMarx/wandb/offline-run-20250428_144825-tvu11nnk/logs/debug-core.log"}
+{"time":"2025-04-28T14:48:25.907615004Z","level":"WARN","msg":"GraphQL client is nil, skipping feature loading"}
+{"time":"2025-04-28T14:48:25.919521364Z","level":"INFO","msg":"created new stream","id":"tvu11nnk"}
+{"time":"2025-04-28T14:48:25.919575466Z","level":"INFO","msg":"stream: started","id":"tvu11nnk"}
+{"time":"2025-04-28T14:48:25.919675827Z","level":"INFO","msg":"writer: Do: started","stream_id":"tvu11nnk"}
+{"time":"2025-04-28T14:48:25.919751961Z","level":"INFO","msg":"handler: started","stream_id":"tvu11nnk"}
+{"time":"2025-04-28T14:48:25.920699329Z","level":"INFO","msg":"sender: started","stream_id":"tvu11nnk"}
+{"time":"2025-04-28T14:48:25.954599319Z","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-04-28T14:48:30.963255742Z","level":"INFO","msg":"stream: closing","id":"tvu11nnk"}
+{"time":"2025-04-28T14:48:30.963451778Z","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-04-28T14:48:30.963534672Z","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-04-28T14:48:30.964666366Z","level":"INFO","msg":"handler: closed","stream_id":"tvu11nnk"}
+{"time":"2025-04-28T14:48:30.964735791Z","level":"INFO","msg":"sender: closed","stream_id":"tvu11nnk"}
+{"time":"2025-04-28T14:48:30.964760018Z","level":"INFO","msg":"writer: Close: closed","stream_id":"tvu11nnk"}
+{"time":"2025-04-28T14:48:30.964927871Z","level":"INFO","msg":"stream: closed","id":"tvu11nnk"}

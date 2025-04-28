@@ -1,0 +1,8 @@
+{
+  "train_file": "train.json",
+  "val_file": null,
+  "prompt_column": "instruction",
+  "query_column": "input",
+  "response_column": "output",
+  "format": "alpaca"
+}
