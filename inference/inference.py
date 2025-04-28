@@ -57,7 +57,7 @@ def load_model_and_tokenizer(
     
     # 设置 LoRA 权重路径
     if lora_path is None:
-        lora_path = os.path.join(TRAINING_CONFIG["output_dir"], "final_model")
+        lora_path = TRAINING_CONFIG["output_dir"]  # 直接使用输出目录
         logger.info(f"Using default LoRA path: {lora_path}")
     
     # 加载分词器
