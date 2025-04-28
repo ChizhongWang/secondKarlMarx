@@ -8,10 +8,9 @@ import logging
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
 from transformers import HfArgumentParser, TrainingArguments, set_seed
-from llmtuner import create_model_and_tokenizer
-from llmtuner.extras.misc import torch_gc
 from llmtuner.tuner.core import load_model_and_tokenizer
 from llmtuner.tuner.sft import train_model
+from llmtuner.extras.misc import torch_gc
 
 # 配置日志
 logging.basicConfig(
