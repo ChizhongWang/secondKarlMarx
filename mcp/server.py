@@ -33,17 +33,17 @@ def load_model_for_inference():
     logger.info(f"Loading model {MODEL_CONFIG['model_name_or_path']}...")
     
     # 配置量化参数（如果GPU内存不足）
-    quantization_config = BitsAndBytesConfig(
-        load_in_8bit=True,  # 使用8位量化以节省内存
-        bnb_4bit_compute_dtype=torch.float16
-    )
+    # quantization_config = BitsAndBytesConfig(
+    #     load_in_8bit=True,  # 使用8位量化以节省内存
+    #     bnb_4bit_compute_dtype=torch.float16
+    # )
     
     # 加载原始模型
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_CONFIG["model_name_or_path"],
         device_map="auto",
         torch_dtype=torch.float16,
-        quantization_config=quantization_config
+        #quantization_config=quantization_config
     )
     
     # 加载分词器
