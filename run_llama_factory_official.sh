@@ -22,8 +22,10 @@ export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
 # 使用官方命令行接口
 python -m llmtuner.cli.sft \
     --model_name_or_path Qwen/Qwen2.5-7B-Instruct \
-    --dataset custom \
-    --dataset_dir ./training \
+    --dataset ChizhongWang/secondKarlMarx-sft \
+    --prompt_column prompt \
+    --response_column content \
+    --max_samples 2 \
     --template qwen \
     --finetuning_type lora \
     --lora_target q_proj,k_proj,v_proj,o_proj \
@@ -31,13 +33,13 @@ python -m llmtuner.cli.sft \
     --lora_alpha 16 \
     --lora_dropout 0.1 \
     --cutoff_len 8192 \
-    --output_dir ./outputs_llama_factory \
+    --output_dir ./outputs_llama_factory_test \
     --per_device_train_batch_size 4 \
     --gradient_accumulation_steps 4 \
     --lr_scheduler_type cosine \
     --logging_steps 1 \
     --save_steps 100 \
     --learning_rate 2e-5 \
-    --num_train_epochs 3.0 \
+    --num_train_epochs 1.0 \
     --fp16 \
     --deepspeed configs/ds_config_zero2.json
