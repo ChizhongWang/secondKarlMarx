@@ -46,7 +46,7 @@ TRAINING_CONFIG = {
     "remove_unused_columns": True,
 }
 
-# LoRA配置
+# LoRA配置 - 只使用注意力层的投影
 LORA_CONFIG = {
     "r": 8,  # 降低LoRA秩以减少参数量
     "lora_alpha": 16,  # LoRA alpha参数，通常设置为2*r
@@ -54,7 +54,7 @@ LORA_CONFIG = {
     "bias": "none",
     "task_type": "CAUSAL_LM",
     "fan_in_fan_out": False,
-    "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj"],  # 只使用注意力层的投影
 }
 
 # DeepSpeed配置
@@ -72,5 +72,5 @@ MCP_CONFIG = {
     "server_name": "secondKarlMarx",
     "host": "0.0.0.0",
     "port": 8000,
-    "model_path": "./outputs/final_model",  # 修改为与TRAINING_CONFIG一致的路径
+    "model_path": "./outputs",  # 修改为与TRAINING_CONFIG一致的路径
 }
