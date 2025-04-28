@@ -41,13 +41,13 @@
         "params": {
             "warmup_min_lr": 0,
             "warmup_max_lr": 2e-5,
-            "warmup_num_steps": 50
+            "warmup_num_steps": "auto"
         }
     },
     "steps_per_print": 10,
-    "train_batch_size": 4,
+    "train_batch_size": "auto",
     "train_micro_batch_size_per_gpu": 1,
-    "gradient_accumulation_steps": 1,
+    "gradient_accumulation_steps": "auto",
     "wall_clock_breakdown": false,
     "gradient_clipping": 1.0,
     "memory_breakdown": true
