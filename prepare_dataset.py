@@ -45,7 +45,22 @@ def download_and_convert_dataset(dataset_name, output_dir="./training", max_samp
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(converted_data, f, ensure_ascii=False, indent=2)
     
+    # 创建dataset_info.json文件
+    dataset_info = {
+        "train_file": "train.json",
+        "val_file": None,  # 可选，如果有验证集
+        "prompt_column": "instruction",
+        "query_column": "input",
+        "response_column": "output",
+        "format": "alpaca"
+    }
+    
+    info_file = os.path.join(output_dir, "dataset_info.json")
+    with open(info_file, "w", encoding="utf-8") as f:
+        json.dump(dataset_info, f, ensure_ascii=False, indent=2)
+    
     print(f"数据集已保存到: {output_file}")
+    print(f"数据集信息已保存到: {info_file}")
     print(f"样本数量: {len(converted_data)}")
     
     # 打印第一个样本作为示例
