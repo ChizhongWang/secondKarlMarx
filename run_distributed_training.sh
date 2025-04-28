@@ -26,4 +26,5 @@ deepspeed --num_gpus=$NUM_GPUS \
     --master_addr=$MASTER_ADDR \
     --master_port=$MASTER_PORT \
     train.py \
-    --deepspeed configs/ds_config.json
+    --deepspeed \
+    --deepspeed_config configs/ds_config.json
