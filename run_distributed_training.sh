@@ -2,7 +2,7 @@
 # 最小可行性实验 - 分布式训练启动脚本
 
 # 设置环境变量
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7  # 使用所有8张GPU
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6  # 使用7张GPU
 export NCCL_DEBUG=INFO
 # 修改NCCL网络配置
 export NCCL_SOCKET_IFNAME=lo  # 使用本地回环接口
@@ -10,7 +10,7 @@ export NCCL_IB_DISABLE=1  # 禁用InfiniBand
 export NCCL_P2P_DISABLE=1  # 禁用P2P通信
 
 # 设置内存优化
-export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128,expandable_segments:True
+export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
 
 # 设置DeepSpeed环境变量
 export MASTER_ADDR=127.0.0.1  # 使用本地回环IP地址
@@ -18,7 +18,7 @@ export MASTER_PORT=29500
 export NODE_RANK=0
 
 # 获取GPU数量
-NUM_GPUS=8  # 使用所有8张GPU
+NUM_GPUS=7  # 使用7张GPU
 
 # 启动分布式训练
 deepspeed --num_gpus=$NUM_GPUS \

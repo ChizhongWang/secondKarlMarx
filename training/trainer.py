@@ -215,9 +215,11 @@ def train(local_rank=None, deepspeed_config=None, zero_stage=None):
     
     try:
         logger.info("Starting training")
-        # 禁用默认的checkpoint保存，改为手动保存
+        # 完全禁用检查点保存
         original_save_strategy = training_args.save_strategy
         training_args.save_strategy = "no"
+        training_args.save_steps = 999999  # 设置一个非常大的值，确保不会触发保存
+        training_args.save_total_limit = 0  # 不保留任何检查点
         
         # 添加内存清理回调
         class MemoryCleanupCallback(transformers.TrainerCallback):
@@ -227,13 +229,35 @@ def train(local_rank=None, deepspeed_config=None, zero_stage=None):
                     if torch.cuda.is_available():
                         torch.cuda.empty_cache()
                         logger.info(f"Memory cleaned at step {state.global_step}")
+                
+                # 禁用任何可能的检查点保存
+                control.should_save = False
                 return control
+            
+            # 拦截所有保存尝试
+            def on_save(self, args, state, control, **kwargs):
+                logger.info("Save attempt intercepted and prevented")
+                return False
         
         # 添加回调
         trainer.add_callback(MemoryCleanupCallback())
         
-        # 训练模型
-        trainer.train()
+        # 训练模型 - 添加更多错误处理
+        try:
+            trainer.train()
+        except Exception as e:
+            logger.error(f"Error during training: {e}")
+            # 尝试保存当前模型状态，即使训练失败
+            try:
+                if hasattr(model, "save_pretrained"):
+                    logger.info("Training failed but attempting to save current model state")
+                    save_path = os.path.join(training_args.output_dir, "partial_model")
+                    os.makedirs(save_path, exist_ok=True)
+                    model.save_pretrained(save_path)
+                    logger.info(f"Partial model saved to {save_path}")
+            except Exception as save_error:
+                logger.error(f"Failed to save partial model: {save_error}")
+            raise e
         
         # 手动保存最终模型
         logger.info("Training completed, saving final model")

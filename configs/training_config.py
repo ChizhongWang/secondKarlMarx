@@ -19,32 +19,31 @@ DATASET_CONFIG = {
 
 # 训练配置
 TRAINING_CONFIG = {
-    "output_dir": "./results",
-    "num_train_epochs": 1,  # 仅训练1个epoch用于测试
+    "output_dir": "./outputs",
+    "num_train_epochs": 3,
     "per_device_train_batch_size": 1,  # 减小批处理大小以减少内存使用
-    "gradient_accumulation_steps": 4,  # 调整梯度累积步数
+    "gradient_accumulation_steps": 8,  # 调整梯度累积步数
     "learning_rate": 2e-5,
     "weight_decay": 0.01,
     "warmup_ratio": 0.03,
+    "lr_scheduler_type": "cosine",
     "logging_steps": 5,
-    "save_steps": 50,
-    "save_total_limit": 2,
+    "save_strategy": "steps",
+    "save_steps": 100,
+    "save_total_limit": 3,
     "fp16": True,
     "bf16": False,
-    "torch_compile": False,
-    "gradient_checkpointing": True,
-    "optim": "adamw_torch",
-    "seed": 42,
-    "max_seq_length": 2048,  # 增加序列长度，8张GPU可以处理更长序列
+    "max_grad_norm": 1.0,
+    "max_seq_length": 1536,  # 减小序列长度以减轻内存压力
     "max_steps": 100,  # 限制最大步数为100
-    "save_strategy": "steps",
-    # 移除 evaluation_strategy 参数，它可能不被当前版本的 transformers 或 SFTTrainer 支持
     "eval_steps": 50,
     "group_by_length": True,
-    "report_to": ["tensorboard"],  # 移除wandb以简化测试
+    "report_to": "none",  # 移除wandb以简化测试
     "ddp_find_unused_parameters": False,
-    "dataloader_num_workers": 8,  # 增加数据加载器工作线程数量以适应8张GPU
+    "dataloader_num_workers": 7,  # 增加数据加载器工作线程数量以适应7张GPU
     "dataloader_pin_memory": True,
+    "local_rank": -1,
+    "remove_unused_columns": True,
 }
 
 # LoRA配置
