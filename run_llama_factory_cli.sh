@@ -17,7 +17,7 @@ else
 fi
 
 export NCCL_DEBUG=INFO
-export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
+export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128,expandable_segments:True
 export FORCE_TORCHRUN=1
 
 # 首先准备数据集

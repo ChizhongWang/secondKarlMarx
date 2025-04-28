@@ -11,7 +11,7 @@ lora_dropout: 0.1
 dataset: alpaca
 dataset_dir: ./training
 template: qwen
-cutoff_len: 4096  # 减小序列长度
+cutoff_len: 2048  # 进一步减小序列长度
 max_samples: 2  # 只使用前两个样本进行测试
 preprocessing_num_workers: 4
 
@@ -22,13 +22,15 @@ plot_loss: true
 overwrite_output_dir: true
 
 per_device_train_batch_size: 1  # 减小批次大小
-gradient_accumulation_steps: 8  # 增加梯度累积步数
+gradient_accumulation_steps: 16  # 进一步增加梯度累积步数
 max_grad_norm: 1.0
 learning_rate: 2.0e-5
 num_train_epochs: 1.0
 lr_scheduler_type: cosine
 warmup_ratio: 0.1
 fp16: true
+bf16: false  # 确保不使用bf16
+offload_optimizer: true  # 启用优化器卸载到CPU
 
-deepspeed: configs/ds_config_zero2.json
+deepspeed: configs/ds_config_zero3.json  # 使用Zero-3而不是Zero-2
 gradient_checkpointing: true  # 启用梯度检查点
