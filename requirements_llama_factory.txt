@@ -1,0 +1,10 @@
+# LLaMA Factory推荐依赖版本
+torch==2.6.0
+transformers==4.51.3
+datasets==3.2.0
+accelerate==1.2.1
+peft==0.15.1
+trl==0.9.6
+deepspeed==0.16.4
+bitsandbytes==0.43.1
+flash-attn==2.7.2
