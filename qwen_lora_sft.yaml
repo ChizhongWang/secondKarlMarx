@@ -32,5 +32,15 @@ fp16: true
 bf16: false  # 确保不使用bf16
 offload_optimizer: true  # 启用优化器卸载到CPU
 
-deepspeed: configs/ds_config_zero3.json  # 使用Zero-3而不是Zero-2
+# 直接在YAML中定义DeepSpeed配置
+deepspeed:
+  zero_optimization:
+    stage: 2
+    offload_optimizer:
+      device: cpu
+    contiguous_gradients: true
+    overlap_comm: true
+  fp16:
+    enabled: true
+
 gradient_checkpointing: true  # 启用梯度检查点
