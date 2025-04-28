@@ -1,6 +1,6 @@
 torch==2.5.0
 torchvision==0.20
-transformers==4.51.3
+transformers==4.36.2
 datasets>=2.12.0
 accelerate>=0.20.0
 peft==0.7.1
@@ -17,7 +17,7 @@ tensorboard>=2.12.0
 gradio>=3.32.0
 
 # LLaMA Factory依赖
-llmtuner>=0.1.0
+llmtuner==0.1.0
 scipy>=1.10.0
 tiktoken>=0.5.1
 einops>=0.6.1

@@ -7,7 +7,7 @@ import sys
 import logging
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
-from transformers import HfArgumentParser, TrainingArguments
+from transformers import HfArgumentParser, TrainingArguments, set_seed
 from llmtuner import create_model_and_tokenizer
 from llmtuner.extras.misc import torch_gc
 from llmtuner.tuner.core import load_model_and_tokenizer
@@ -53,11 +53,11 @@ class DataArguments:
     数据参数
     """
     dataset: str = field(
-        default="your_dataset",
+        default="custom",
         metadata={"help": "数据集名称"}
     )
     dataset_dir: Optional[str] = field(
-        default=None,
+        default="./training",
         metadata={"help": "数据集目录"}
     )
     template: str = field(
@@ -129,4 +129,4 @@ def main():
     torch_gc()
 
 if __name__ == "__main__":
-    main() 
+    main()
