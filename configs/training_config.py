@@ -13,7 +13,7 @@ DATASET_CONFIG = {
     "prompt_field": "prompt",  # 提示字段
     "content_field": "content",  # 内容字段
     "format": "prompt_content",  # 使用自定义格式
-    "max_samples": 100,  # 增加样本数量用于实际训练
+    "max_samples": 10,  # 训练前十条数据快速验证
     "streaming": False,
 }
 
