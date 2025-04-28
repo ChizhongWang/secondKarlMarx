@@ -38,7 +38,7 @@ TRAINING_CONFIG = {
     "max_seq_length": 1024,  # 减小序列长度以减少内存使用
     "max_steps": 100,  # 限制最大步数为100
     "save_strategy": "steps",
-    "evaluation_strategy": "steps",
+    # 移除 evaluation_strategy 参数，它可能不被当前版本的 transformers 或 SFTTrainer 支持
     "eval_steps": 50,
     "group_by_length": True,
     "report_to": ["tensorboard"],  # 移除wandb以简化测试
