@@ -30,7 +30,6 @@ lr_scheduler_type: cosine
 warmup_ratio: 0.1
 fp16: true
 bf16: false  # 确保不使用bf16
-offload_optimizer: true  # 启用优化器卸载到CPU
 
 # 直接在YAML中定义DeepSpeed配置
 deepspeed:
@@ -38,6 +37,7 @@ deepspeed:
     stage: 2
     offload_optimizer:
       device: cpu
+      pin_memory: true
     contiguous_gradients: true
     overlap_comm: true
   fp16:
