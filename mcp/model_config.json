@@ -1,6 +1,6 @@
 {
   "model_name_or_path": "Qwen/Qwen2.5-7B-Instruct",
-  "adapter_name_or_path": "./outputs_llama_factory_test",
+  "adapter_name_or_path": "/home/featurize/secondKarlMarx/outputs_llama_factory_test",
   "template": "qwen",
   "finetuning_type": "lora",
   "device": "cuda",
