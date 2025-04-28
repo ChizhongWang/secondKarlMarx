@@ -171,6 +171,10 @@ def train(local_rank=None, deepspeed_config=None, zero_stage=None):
     if "max_seq_length" in training_args_dict:
         del training_args_dict["max_seq_length"]
     
+    # 从训练参数中移除 remove_unused_columns，因为它已经在创建 TrainingArguments 时直接设置了
+    if "remove_unused_columns" in training_args_dict:
+        del training_args_dict["remove_unused_columns"]
+    
     # 处理DeepSpeed配置
     if deepspeed_config:
         logger.info("Using provided DeepSpeed configuration")
