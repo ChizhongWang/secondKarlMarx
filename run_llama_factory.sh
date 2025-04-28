@@ -39,7 +39,7 @@ python train_llama_factory.py \
     --lr_scheduler_type cosine \
     --logging_steps 1 \
     --save_steps 100 \
-    --learning_rate 5e-5 \
+    --learning_rate 2e-5 \
     --num_train_epochs 3.0 \
     --fp16 \
     --deepspeed configs/ds_config_zero2.json
