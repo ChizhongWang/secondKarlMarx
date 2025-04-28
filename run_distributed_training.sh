@@ -2,7 +2,7 @@
 # 最小可行性实验 - 分布式训练启动脚本
 
 # 设置环境变量
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6  # 使用7张GPU
+export CUDA_VISIBLE_DEVICES=0,1,2,3  # 使用4张GPU
 export NCCL_DEBUG=INFO
 # 修改NCCL网络配置
 export NCCL_SOCKET_IFNAME=lo  # 使用本地回环接口
@@ -18,7 +18,7 @@ export MASTER_PORT=29500
 export NODE_RANK=0
 
 # 获取GPU数量
-NUM_GPUS=7  # 使用7张GPU
+NUM_GPUS=4  # 使用4张GPU
 
 # 启动分布式训练
 deepspeed --num_gpus=$NUM_GPUS \

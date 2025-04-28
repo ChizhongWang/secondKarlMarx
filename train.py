@@ -9,6 +9,7 @@ import argparse
 import logging
 from training.trainer import train
 import torch
+import deepspeed.launcher
 
 # 配置日志
 logging.basicConfig(
@@ -82,4 +83,11 @@ def main():
         raise
 
 if __name__ == "__main__":
-    main()
+    # 使用4张GPU进行训练
+    deepspeed.launcher.runner.main([
+        "deepspeed",
+        "--num_gpus=4",
+        "train.py",
+        "--deepspeed",
+        "ds_config.json"
+    ])

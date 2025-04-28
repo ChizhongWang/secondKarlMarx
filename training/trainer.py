@@ -42,10 +42,6 @@ logger = logging.getLogger(__name__)
 def setup_model_and_tokenizer():
     """
     设置模型和分词器
-    
-    Returns:
-        model: 加载的模型
-        tokenizer: 加载的分词器
     """
     # 获取本地排名
     local_rank = int(os.environ.get("LOCAL_RANK", "0"))
@@ -60,10 +56,11 @@ def setup_model_and_tokenizer():
         device = torch.device("cpu")
         logger.info("Using CPU")
     
-    logger.info(f"Loading base model: {BASE_MODEL_CONFIG['model_name_or_path']}")
-    
     # 加载分词器
-    tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_CONFIG["model_name_or_path"], trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(
+        BASE_MODEL_CONFIG["model_name_or_path"],
+        trust_remote_code=True
+    )
     
     # 确保分词器有正确的EOS和PAD token
     if tokenizer.pad_token is None:
@@ -81,15 +78,12 @@ def setup_model_and_tokenizer():
     model = AutoModelForCausalLM.from_pretrained(
         BASE_MODEL_CONFIG["model_name_or_path"],
         quantization_config=bnb_config,
-        device_map={"": local_rank},  # 回退到指定设备，避免DTensor问题
+        device_map={"": local_rank},  # 使用本地rank作为设备映射
         trust_remote_code=True,
         torch_dtype=torch.float16
     )
     
-    # 应用LoRA适配器进行参数高效微调
-    logger.info("Applying LoRA adapter for parameter-efficient fine-tuning")
-    
-    # 为量化训练准备模型 - 添加错误处理
+    # 为量化训练准备模型
     try:
         model = prepare_model_for_kbit_training(model)
     except Exception as e:
@@ -115,7 +109,6 @@ def setup_model_and_tokenizer():
         model.print_trainable_parameters()
     except Exception as e:
         logger.error(f"Error applying LoRA adapter: {e}")
-        # 尝试备用方法
         logger.info("Trying alternative approach for LoRA application")
         from peft.tuners.lora import LoraModel
         model = LoraModel(model, lora_config, "default")
