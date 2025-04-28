@@ -9,8 +9,10 @@ lora_alpha: 16
 lora_dropout: 0.1
 
 dataset: ChizhongWang/secondKarlMarx-sft
-prompt_column: prompt
-response_column: content
+dataset_format: alpaca
+dataset_columns:
+  prompt: prompt
+  response: content
 template: qwen
 cutoff_len: 8192
 max_samples: 2  # 只使用前两个样本进行测试
