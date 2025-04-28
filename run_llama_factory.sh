@@ -23,7 +23,7 @@ export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
 
 # 启动训练
 python train_llama_factory.py \
-    --model_name_or_path Qwen/Qwen2.5-7B \
+    --model_name_or_path Qwen/Qwen2.5-7B-Instruct \
     --dataset custom \
     --dataset_dir ./training \
     --template qwen \
