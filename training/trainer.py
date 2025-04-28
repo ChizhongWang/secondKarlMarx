@@ -81,7 +81,7 @@ def setup_model_and_tokenizer():
     model = AutoModelForCausalLM.from_pretrained(
         BASE_MODEL_CONFIG["model_name_or_path"],
         quantization_config=bnb_config,
-        device_map="auto",  
+        device_map={"": local_rank},  # 回退到指定设备，避免DTensor问题
         trust_remote_code=True,
         torch_dtype=torch.float16
     )
@@ -111,8 +111,16 @@ def setup_model_and_tokenizer():
     )
     
     # 应用LoRA适配器
-    model = get_peft_model(model, peft_config)
-    model.print_trainable_parameters()
+    try:
+        model = get_peft_model(model, peft_config)
+        model.print_trainable_parameters()
+    except Exception as e:
+        logger.error(f"Error applying LoRA adapter: {e}")
+        # 尝试备用方法
+        logger.info("Trying alternative approach for LoRA application")
+        from peft.tuners.lora import LoraModel
+        model = LoraModel(model, peft_config, "default")
+        logger.info("LoRA adapter applied using alternative method")
     
     return model, tokenizer
 
