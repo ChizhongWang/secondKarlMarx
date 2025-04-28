@@ -8,11 +8,8 @@ lora_rank: 8
 lora_alpha: 16
 lora_dropout: 0.1
 
-dataset: ChizhongWang/secondKarlMarx-sft
-dataset_format: alpaca
-dataset_columns:
-  prompt: prompt
-  response: content
+dataset: custom
+dataset_dir: ./training
 template: qwen
 cutoff_len: 8192
 max_samples: 2  # 只使用前两个样本进行测试
@@ -26,6 +23,7 @@ overwrite_output_dir: true
 
 per_device_train_batch_size: 4
 gradient_accumulation_steps: 4
+max_grad_norm: 1.0
 learning_rate: 2.0e-5
 num_train_epochs: 1.0
 lr_scheduler_type: cosine
