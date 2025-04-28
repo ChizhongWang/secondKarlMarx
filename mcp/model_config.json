@@ -1,0 +1,11 @@
+{
+  "model_name_or_path": "Qwen/Qwen2.5-7B-Instruct",
+  "adapter_name_or_path": "./outputs_llama_factory_test",
+  "template": "qwen",
+  "finetuning_type": "lora",
+  "device": "cuda",
+  "max_new_tokens": 1024,
+  "temperature": 0.7,
+  "top_p": 0.9,
+  "repetition_penalty": 1.1
+}

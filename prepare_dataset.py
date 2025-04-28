@@ -68,4 +68,4 @@ def download_and_convert_dataset(dataset_name, output_dir="./training", max_samp
 
 if __name__ == "__main__":
     # 下载并转换数据集
-    download_and_convert_dataset("ChizhongWang/secondKarlMarx-sft", max_samples=2)
+    download_and_convert_dataset("ChizhongWang/secondKarlMarx-sft", max_samples=None)

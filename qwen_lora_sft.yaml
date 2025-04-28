@@ -12,10 +12,10 @@ dataset: alpaca
 dataset_dir: ./training
 template: qwen
 cutoff_len: 2048  # 进一步减小序列长度
-max_samples: 2  # 只使用前两个样本进行测试
+# max_samples: 2  # 只使用前两个样本进行测试
 preprocessing_num_workers: 4
 
-output_dir: ./outputs_llama_factory_test
+output_dir: ./outputs_llama_factory_full
 logging_steps: 1
 save_steps: 100
 plot_loss: true
@@ -25,7 +25,7 @@ per_device_train_batch_size: 1  # 减小批次大小
 gradient_accumulation_steps: 16  # 进一步增加梯度累积步数
 max_grad_norm: 1.0
 learning_rate: 2.0e-5
-num_train_epochs: 1.0
+num_train_epochs: 3.0
 lr_scheduler_type: cosine
 warmup_ratio: 0.1
 fp16: true
