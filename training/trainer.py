@@ -63,7 +63,7 @@ def setup_model_and_tokenizer():
     logger.info(f"Loading base model: {BASE_MODEL_CONFIG['model_name_or_path']}")
     
     # 加载分词器
-    tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_CONFIG["model_name_or_path"])
+    tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_CONFIG["model_name_or_path"], trust_remote_code=True)
     
     # 确保分词器有正确的EOS和PAD token
     if tokenizer.pad_token is None:
@@ -81,7 +81,8 @@ def setup_model_and_tokenizer():
     model = AutoModelForCausalLM.from_pretrained(
         BASE_MODEL_CONFIG["model_name_or_path"],
         quantization_config=bnb_config,
-        device_map={"": local_rank},  # 将模型分配到当前GPU
+        device_map="auto",  
+        trust_remote_code=True,
         torch_dtype=torch.float16
     )
     

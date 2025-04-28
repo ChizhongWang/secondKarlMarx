@@ -4,13 +4,16 @@
 # 设置环境变量
 export CUDA_VISIBLE_DEVICES=0,1,2,3  # 使用所有4张GPU
 export NCCL_DEBUG=INFO
-export NCCL_SOCKET_IFNAME=eth0  # 根据您的网络接口调整
+# 修改NCCL网络配置
+export NCCL_SOCKET_IFNAME=lo  # 使用本地回环接口
+export NCCL_IB_DISABLE=1  # 禁用InfiniBand
+export NCCL_P2P_DISABLE=1  # 禁用P2P通信
 
 # 设置内存优化
 export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128,expandable_segments:True
 
 # 设置DeepSpeed环境变量
-export MASTER_ADDR=localhost
+export MASTER_ADDR=127.0.0.1  # 使用本地回环IP地址
 export MASTER_PORT=29500
 export NODE_RANK=0
 

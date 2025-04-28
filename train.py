@@ -52,7 +52,11 @@ def main():
         logger.info(f"Running in distributed mode with local_rank: {args.local_rank}")
         # 初始化PyTorch分布式
         if not torch.distributed.is_initialized():
-            torch.distributed.init_process_group(backend="nccl")
+            # 显式设置当前设备，避免NCCL设备映射问题
+            torch.cuda.set_device(args.local_rank)
+            # 使用环境变量初始化，避免显式指定backend
+            torch.distributed.init_process_group(init_method="env://")
+            logger.info(f"Initialized process group for rank {torch.distributed.get_rank()}")
     
     # 处理DeepSpeed配置
     deepspeed_config = None
