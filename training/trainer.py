@@ -196,13 +196,12 @@ def train(local_rank=None, deepspeed_config=None, zero_stage=None):
         logging_first_step=True,
     )
     
-    # 创建SFT训练器
+    # 创建SFT训练器 - 移除不支持的tokenizer参数
     trainer = SFTTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
-        tokenizer=tokenizer,
         packing=True,  # 启用序列打包以提高效率
         max_seq_length=TRAINING_CONFIG.get("max_seq_length", 8192),
         dataset_text_field=DATASET_CONFIG.get("text_field", "text"),
