@@ -213,18 +213,37 @@ def train(local_rank=None, deepspeed_config=None, zero_stage=None):
         eval_dataset=eval_dataset,
     )
     
-    # 开始训练
-    logger.info("Starting training")
-    trainer.train()
+    try:
+        logger.info("Starting training")
+        # 禁用默认的checkpoint保存，改为手动保存
+        original_save_strategy = training_args.save_strategy
+        training_args.save_strategy = "no"
+        
+        # 训练模型
+        trainer.train()
+        
+        # 手动保存最终模型
+        logger.info("Training completed, saving final model")
+        # 使用PEFT的保存方法而不是DeepSpeed的方法
+        if hasattr(model, "save_pretrained"):
+            logger.info("Saving using PEFT save_pretrained")
+            # 只保存LoRA适配器权重
+            model.save_pretrained(training_args.output_dir)
+        else:
+            logger.warning("Model doesn't have save_pretrained method, using trainer.save_model")
+            try:
+                # 尝试使用trainer的保存方法，但可能会失败
+                trainer.save_model(training_args.output_dir)
+            except Exception as e:
+                logger.error(f"Error saving model: {e}")
+                logger.info("Saving tokenizer only as fallback")
+                tokenizer.save_pretrained(training_args.output_dir)
+                
+    except Exception as e:
+        logger.error(f"Training failed with error: {e}")
+        raise
     
-    # 保存最终模型
-    if is_main_process:
-        final_model_path = os.path.join(TRAINING_CONFIG["output_dir"], "final_model")
-        logger.info(f"Saving final model to {final_model_path}")
-        trainer.save_model(final_model_path)
-        tokenizer.save_pretrained(final_model_path)
-    
-    return TRAINING_CONFIG["output_dir"]
+    return training_args.output_dir
 
 if __name__ == "__main__":
     train()

@@ -35,7 +35,7 @@ TRAINING_CONFIG = {
     "gradient_checkpointing": True,
     "optim": "adamw_torch",
     "seed": 42,
-    "max_seq_length": 1024,  # 减小序列长度以减少内存使用
+    "max_seq_length": 2048,  # 增加序列长度，8张GPU可以处理更长序列
     "max_steps": 100,  # 限制最大步数为100
     "save_strategy": "steps",
     # 移除 evaluation_strategy 参数，它可能不被当前版本的 transformers 或 SFTTrainer 支持
@@ -43,7 +43,7 @@ TRAINING_CONFIG = {
     "group_by_length": True,
     "report_to": ["tensorboard"],  # 移除wandb以简化测试
     "ddp_find_unused_parameters": False,
-    "dataloader_num_workers": 4,  # 增加数据加载器工作线程数量以适应4张GPU
+    "dataloader_num_workers": 8,  # 增加数据加载器工作线程数量以适应8张GPU
     "dataloader_pin_memory": True,
 }
 
