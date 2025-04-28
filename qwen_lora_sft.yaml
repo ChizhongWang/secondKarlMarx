@@ -42,5 +42,7 @@ deepspeed:
     overlap_comm: true
   fp16:
     enabled: true
+  train_micro_batch_size_per_gpu: 1  # 确保与per_device_train_batch_size一致
+  gradient_accumulation_steps: 16  # 确保与上面的设置一致
 
 gradient_checkpointing: true  # 启用梯度检查点
