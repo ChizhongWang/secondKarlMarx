@@ -8,7 +8,7 @@ lora_rank: 8
 lora_alpha: 16
 lora_dropout: 0.1
 
-dataset: custom
+dataset: alpaca
 dataset_dir: ./training
 template: qwen
 cutoff_len: 8192

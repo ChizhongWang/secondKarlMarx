@@ -47,12 +47,10 @@ def download_and_convert_dataset(dataset_name, output_dir="./training", max_samp
     
     # 创建dataset_info.json文件
     dataset_info = {
-        "train_file": "train.json",
-        "val_file": None,  # 可选，如果有验证集
-        "prompt_column": "instruction",
-        "query_column": "input",
-        "response_column": "output",
-        "format": "alpaca"
+        "alpaca": {
+            "file_name": "train.json",
+            "file_sha1": None
+        }
     }
     
     info_file = os.path.join(output_dir, "dataset_info.json")
