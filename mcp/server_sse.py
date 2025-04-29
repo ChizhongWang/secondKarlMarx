@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+MCP服务器 - SSE传输版本
+用于通过HTTP/SSE传输提供Qwen2.5-7B-Instruct微调模型的访问
+"""
+
 import logging
 import torch
 import json
@@ -146,6 +151,7 @@ if __name__ == "__main__":
     _ = chat(dummy_input)
     logger.info("模型预热完成")
     
-    # 运行MCP服务器
-    logger.info(f"Starting MCP server for secondKarlMarx")
-    karlmarx.run(transport='stdio')
+    # 运行MCP服务器 - 使用SSE传输
+    logger.info(f"Starting MCP server for secondKarlMarx with SSE transport")
+    # 使用SSE传输，不需要指定host和port
+    karlmarx.run(transport='sse')

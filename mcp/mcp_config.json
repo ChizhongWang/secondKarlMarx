@@ -3,8 +3,8 @@
     "secondKarlMarx": {
       "command": "python",
       "args": ["server.py"],
-      "host": "183.223.25.19",
-      "port": 8000
+      "host": "workspace.featurize.cn",
+      "port": 58260
     }
   }
 }
