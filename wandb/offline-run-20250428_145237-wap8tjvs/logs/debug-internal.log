@@ -1,0 +1,15 @@
+{"time":"2025-04-28T14:52:37.19404778Z","level":"INFO","msg":"stream: starting","core version":"0.19.10","symlink path":"/home/featurize/secondKarlMarx/wandb/offline-run-20250428_145237-wap8tjvs/logs/debug-core.log"}
+{"time":"2025-04-28T14:52:37.300192271Z","level":"WARN","msg":"GraphQL client is nil, skipping feature loading"}
+{"time":"2025-04-28T14:52:37.300359583Z","level":"INFO","msg":"created new stream","id":"wap8tjvs"}
+{"time":"2025-04-28T14:52:37.300396288Z","level":"INFO","msg":"stream: started","id":"wap8tjvs"}
+{"time":"2025-04-28T14:52:37.300522077Z","level":"INFO","msg":"writer: Do: started","stream_id":"wap8tjvs"}
+{"time":"2025-04-28T14:52:37.300608237Z","level":"INFO","msg":"handler: started","stream_id":"wap8tjvs"}
+{"time":"2025-04-28T14:52:37.300722168Z","level":"INFO","msg":"sender: started","stream_id":"wap8tjvs"}
+{"time":"2025-04-28T14:52:37.311769004Z","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-04-28T14:52:39.316458595Z","level":"INFO","msg":"stream: closing","id":"wap8tjvs"}
+{"time":"2025-04-28T14:52:39.316517794Z","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-04-28T14:52:39.316694861Z","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-04-28T14:52:39.316818606Z","level":"INFO","msg":"handler: closed","stream_id":"wap8tjvs"}
+{"time":"2025-04-28T14:52:39.316838776Z","level":"INFO","msg":"writer: Close: closed","stream_id":"wap8tjvs"}
+{"time":"2025-04-28T14:52:39.316865827Z","level":"INFO","msg":"sender: closed","stream_id":"wap8tjvs"}
+{"time":"2025-04-28T14:52:39.317094302Z","level":"INFO","msg":"stream: closed","id":"wap8tjvs"}
