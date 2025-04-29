@@ -1,15 +1,13 @@
-"""
-MCP服务器 - 为训练好的Qwen2.5-7B-Instruct LoRA微调模型提供MCP接口
-"""
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-import os
-import sys
 import logging
 import torch
 import json
+import os
 from typing import List, Dict, Any, Optional
 from mcp.server.fastmcp import FastMCP
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # 配置日志
 logging.basicConfig(
@@ -27,23 +25,20 @@ with open(MODEL_CONFIG_PATH, "r") as f:
 # 创建MCP服务
 karlmarx = FastMCP("secondKarlMarx")
 
+# 全局变量存储模型和tokenizer
+model = None
+tokenizer = None
+
 # 加载模型函数
 def load_model_for_inference():
     """加载LLaMA Factory微调模型"""
     logger.info(f"Loading model {MODEL_CONFIG['model_name_or_path']}...")
     
-    # 配置量化参数（如果GPU内存不足）
-    # quantization_config = BitsAndBytesConfig(
-    #     load_in_8bit=True,  # 使用8位量化以节省内存
-    #     bnb_4bit_compute_dtype=torch.float16
-    # )
-    
     # 加载原始模型
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_CONFIG["model_name_or_path"],
         device_map="auto",
-        torch_dtype=torch.float16,
-        #quantization_config=quantization_config
+        torch_dtype=torch.float16
     )
     
     # 加载分词器
@@ -52,104 +47,62 @@ def load_model_for_inference():
         trust_remote_code=True
     )
     
-    # 如果有LoRA适配器，加载它
+    # 加载LoRA适配器（如果指定）
     if MODEL_CONFIG.get("adapter_name_or_path"):
         logger.info(f"Loading LoRA adapter from {MODEL_CONFIG['adapter_name_or_path']}...")
         from peft import PeftModel
         model = PeftModel.from_pretrained(
-            model, 
-            MODEL_CONFIG["adapter_name_or_path"]
+            model,
+            MODEL_CONFIG["adapter_name_or_path"],
+            torch_dtype=torch.float16
         )
     
     logger.info("Model loaded successfully!")
     return model, tokenizer
 
-# 加载模型
-model, tokenizer = load_model_for_inference()
-
-# 消息历史
-messages = []
-
 @karlmarx.tool()
-async def chat(query: str) -> str:
-    """
-    与微调后的Qwen2.5模型进行对话
+def chat(message: str) -> str:
+    """与Qwen2.5-7B-Instruct微调模型对话
     
     Args:
-        query (str): 用户的问题或指令
-    
-    Returns:
-        str: 模型的回答
+        message: 用户消息
     """
-    global messages
+    # 使用全局模型和tokenizer
+    global model, tokenizer
     
-    try:
-        # 添加用户消息
-        messages.append({"role": "user", "content": query})
-        
-        # 准备输入
-        inputs = tokenizer.apply_chat_template(
-            messages, 
-            return_tensors="pt",
-            add_generation_prompt=True
-        ).to(model.device)
-        
-        # 生成回答
-        with torch.no_grad():
-            outputs = model.generate(
-                inputs,
-                max_new_tokens=MODEL_CONFIG.get("max_new_tokens", 1024),
-                temperature=MODEL_CONFIG.get("temperature", 0.7),
-                top_p=MODEL_CONFIG.get("top_p", 0.9),
-                repetition_penalty=MODEL_CONFIG.get("repetition_penalty", 1.1),
-                do_sample=True,
-                pad_token_id=tokenizer.eos_token_id
-            )
-        
-        # 解码回答
-        response = tokenizer.decode(outputs[0][inputs.shape[1]:], skip_special_tokens=True)
-        
-        # 添加助手消息
-        messages.append({"role": "assistant", "content": response})
-        
-        # 如果消息历史太长，保留最近的10条
-        if len(messages) > 20:
-            messages = messages[-20:]
-        
-        return response
+    # 生成回复
+    inputs = tokenizer(message, return_tensors="pt").to(model.device)
+    outputs = model.generate(
+        **inputs,
+        max_new_tokens=MODEL_CONFIG.get("max_new_tokens", 1024),
+        temperature=MODEL_CONFIG.get("temperature", 0.7),
+        top_p=MODEL_CONFIG.get("top_p", 0.9),
+        repetition_penalty=MODEL_CONFIG.get("repetition_penalty", 1.1)
+    )
+    response = tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
     
-    except Exception as e:
-        logger.error(f"Error in chat: {str(e)}")
-        return f"抱歉，处理您的请求时出现错误: {str(e)}"
+    return response
 
 @karlmarx.tool()
-async def clear_history() -> str:
-    """
-    清除对话历史
-    
-    Returns:
-        str: 操作结果
-    """
-    global messages
-    messages = []
+def clear_history() -> str:
+    """清除对话历史"""
+    # 这里可以添加清除历史的逻辑，如果需要
     return "对话历史已清除"
 
 @karlmarx.tool()
-async def get_model_info() -> Dict[str, Any]:
-    """
-    获取模型信息
-    
-    Returns:
-        Dict[str, Any]: 模型信息
-    """
+def get_model_info() -> dict:
+    """获取模型信息"""
     return {
         "model_name": MODEL_CONFIG["model_name_or_path"],
-        "adapter": MODEL_CONFIG.get("adapter_name_or_path", "None"),
-        "template": MODEL_CONFIG.get("template", "qwen"),
-        "finetuning_type": MODEL_CONFIG.get("finetuning_type", "lora")
+        "adapter": MODEL_CONFIG["adapter_name_or_path"],
+        "finetuning_type": MODEL_CONFIG["finetuning_type"],
+        "template": MODEL_CONFIG["template"]
     }
 
 if __name__ == "__main__":
-    # 初始化并运行服务器
+    # 加载模型
+    model, tokenizer = load_model_for_inference()
+    
+    # 运行MCP服务器
     logger.info(f"Starting MCP server for secondKarlMarx")
     karlmarx.run(transport='stdio')

@@ -2,7 +2,7 @@
   "mcpServers": {
     "secondKarlMarx": {
       "command": "python",
-      "args": ["d:/王驰中的经历/研究生/研一下课程/自然语言处理/secondKarlMarx/mcp/server.py"],
+      "args": ["server.py"],
       "host": "183.223.25.19",
       "port": 8000
     }
