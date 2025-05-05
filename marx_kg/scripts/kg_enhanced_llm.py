@@ -135,14 +135,20 @@ class KGEnhancedLLM:
             for entity in entities:
                 # 使用DMX API生成嵌入向量
                 try:
-                    # 使用ModelManager获取嵌入模型
-                    embedding_model = ModelManager().get_or_create_embedding_model(
-                        "entity_embedding_model",
-                        "openai_embedding",
+                    # 创建嵌入模型配置
+                    embedding_config = LanguageModelConfig(
+                        type="openai_embedding",
                         model="text-embedding-ada-002",
                         encoding_model="cl100k_base",
                         api_key=os.environ.get("DMX_API_KEY"),
                         api_base="https://www.dmxapi.cn/v1"
+                    )
+                    
+                    # 使用ModelManager获取嵌入模型
+                    embedding_model = ModelManager().get_or_create_embedding_model(
+                        "entity_embedding_model",
+                        "openai_embedding",
+                        config=embedding_config
                     )
                     
                     # 为实体描述生成嵌入向量
