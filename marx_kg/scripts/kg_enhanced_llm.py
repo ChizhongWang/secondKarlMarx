@@ -105,7 +105,8 @@ class KGEnhancedLLM:
                     title=row['title'],
                     type=row['type'],
                     description=row.get('description', ''),
-                    embedding=None
+                    description_embedding=None,
+                    name_embedding=None
                 )
                 entities.append(entity)
             
