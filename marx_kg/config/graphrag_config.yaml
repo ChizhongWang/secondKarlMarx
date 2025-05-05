@@ -6,7 +6,7 @@ models:
   default_chat_model:
     type: openai_chat
     model: qwen2.5-7b-instruct  # 您的微调后的Qwen模型名称
-    encoding_name: cl100k_base  # 直接指定编码器名称，而不是通过模型名称推断
+    encoding_model: cl100k_base  # 直接指定编码器名称，而不是通过模型名称推断
     api_base: http://localhost:8000  # 您的本地模型服务器地址
     api_key: dummy-key  # 如果您的本地服务器不需要API密钥，可以使用任意值
   
@@ -14,7 +14,7 @@ models:
   default_embedding_model:
     type: openai_embedding
     model: text-embedding-3-small  # 或者您的本地嵌入模型
-    encoding_name: cl100k_base  # 直接指定编码器名称
+    encoding_model: cl100k_base  # 直接指定编码器名称
     api_base: http://localhost:8000  # 您的本地模型服务器地址
     api_key: dummy-key
 
