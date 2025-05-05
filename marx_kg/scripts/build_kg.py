@@ -69,6 +69,33 @@ async def build_knowledge_graph():
     text_units = pd.DataFrame(documents)
     logger.info(f"加载了 {len(text_units)} 个文档")
     
+    # 打印DataFrame的列名，帮助调试
+    logger.info(f"DataFrame列名: {text_units.columns.tolist()}")
+    
+    # 如果DataFrame为空或没有列，打印更多信息
+    if text_units.empty or len(text_units.columns) == 0:
+        logger.error("DataFrame为空或没有列")
+        logger.info(f"原始文档内容: {documents}")
+        return None
+    
+    # 检查是否有'text'列，如果有，使用'text'作为文本列
+    text_column = 'text' if 'text' in text_units.columns else 'content'
+    id_column = 'id' if 'id' in text_units.columns else 'document_id'
+    
+    logger.info(f"使用文本列: {text_column}")
+    logger.info(f"使用ID列: {id_column}")
+    
+    # 如果没有指定的文本列，尝试使用第一列
+    if text_column not in text_units.columns:
+        text_column = text_units.columns[0]
+        logger.warning(f"找不到'text'或'content'列，使用第一列: {text_column}")
+    
+    # 如果没有指定的ID列，创建一个ID列
+    if id_column not in text_units.columns:
+        text_units['id'] = [f"doc_{i}" for i in range(len(text_units))]
+        id_column = 'id'
+        logger.warning(f"找不到'id'或'document_id'列，创建了一个新的ID列")
+    
     # 提取图谱
     logger.info("步骤1: 提取实体和关系")
     extract_config = config.extract_graph if hasattr(config, 'extract_graph') else None
@@ -91,8 +118,8 @@ async def build_knowledge_graph():
         text_units=text_units,
         callbacks=callbacks,
         cache=cache,
-        text_column="content",
-        id_column="id",
+        text_column=text_column,
+        id_column=id_column,
         strategy=strategy,
         async_mode=AsyncType.AsyncIO,
         entity_types=entity_types,
