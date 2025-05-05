@@ -1,0 +1,15 @@
+{
+  "query_marx_kg": {
+    "description": "查询马克思恩格斯知识图谱，获取相关信息",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "要查询的问题或关键词"
+        }
+      },
+      "required": ["query"]
+    }
+  }
+}

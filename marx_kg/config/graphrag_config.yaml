@@ -1,0 +1,73 @@
+# 马克思恩格斯知识图谱GraphRAG配置文件
+
+# 模型配置
+models:
+  # 聊天模型配置
+  default_chat_model:
+    type: openai_chat
+    model: qwen2.5-7b-instruct  # 您的微调后的Qwen模型名称
+    api_base: http://localhost:8000  # 您的本地模型服务器地址
+    api_key: dummy-key  # 如果您的本地服务器不需要API密钥，可以使用任意值
+  
+  # 嵌入模型配置
+  default_embedding_model:
+    type: openai_embedding
+    model: text-embedding-3-small  # 或者您的本地嵌入模型
+    api_base: http://localhost:8000  # 您的本地模型服务器地址
+    api_key: dummy-key
+
+# 输入配置
+input:
+  type: file
+  file_type: text
+  base_dir: "../data/processed"  # 相对于配置文件的路径
+  encoding: "utf-8"
+
+# 输出配置
+output:
+  type: file
+  base_dir: "../kg/output"  # 相对于配置文件的路径
+
+# 缓存配置
+cache:
+  type: file
+  base_dir: "../models/cache"
+
+# 文本分块配置
+chunks:
+  size: 1000  # 每个文本块的大小（以token为单位）
+  overlap: 100  # 文本块之间的重叠（以token为单位）
+  strategy: tokens
+
+# 图提取配置
+extract_graph:
+  entity_types:
+    - "PERSON"      # 人物
+    - "ORGANIZATION"  # 组织
+    - "LOCATION"    # 地点
+    - "DATE"        # 日期
+    - "EVENT"       # 事件
+    - "WORK_OF_ART"  # 作品
+    - "CONCEPT"     # 概念
+  max_gleanings: 5  # 每个文本块提取的最大实体数量
+
+# 文本嵌入配置
+embed_text:
+  model: "text-embedding-3-small"
+  batch_size: 16
+  target: all
+
+# 向量存储配置
+vector_store:
+  default_vector_store:
+    type: lancedb
+    db_uri: "../models/vector_store"
+    container_name: "marx_engels"
+    overwrite: true
+
+# 查询配置
+local_search:
+  text_unit_prop: 0.6  # 文本相关性权重
+  community_prop: 0.4  # 社区相关性权重
+  top_k_entities: 15   # 返回的最大实体数量
+  top_k_relationships: 10  # 返回的最大关系数量
