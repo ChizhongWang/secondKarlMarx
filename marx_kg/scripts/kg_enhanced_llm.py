@@ -162,11 +162,11 @@ class KGEnhancedLLM:
 
             # 创建聊天模型配置
             chat_model_config = LanguageModelConfig(
-                type="openai_chat",  # 使用正确的类型
-                model="gpt-3.5-turbo",
+                type="openai_chat",
+                model="gpt-3.5-turbo",  # 模型名称不重要，因为我们使用本地API
                 encoding_model="cl100k_base",
-                api_key=os.environ.get("DMX_API_KEY"),
-                api_base="https://www.dmxapi.cn/v1"
+                api_key="dummy-key",  # 本地API不需要真正的API密钥
+                api_base="http://localhost:8000/v1"  # 指向本地模型API
             )
 
             # 创建本地搜索配置
