@@ -4,11 +4,7 @@
 # 卸载当前的llama-factory（如果已安装）
 pip uninstall -y llama-factory
 
-# 确保安装指定版本的依赖
-pip install torch==2.6.0
-pip install transformers==4.51.3
-
-# 直接从GitHub安装LLaMA Factory
+# 直接从GitHub安装LLaMA Factory，让它自动处理依赖关系
 echo "从GitHub安装LLaMA Factory..."
 pip install git+https://github.com/hiyouga/LLaMA-Factory.git
 
