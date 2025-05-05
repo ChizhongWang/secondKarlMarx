@@ -127,7 +127,38 @@ class KGEnhancedLLM:
             )
             
             # 连接到向量存储
-            description_embedding_store.connect(db_uri=db_dir)  # 直接使用文件路径
+            description_embedding_store.connect(db_uri=db_dir)
+            
+            # 创建一个空的集合并加载一些示例文档
+            # 这是必要的，因为LanceDB需要至少一个文档才能进行搜索
+            from graphrag.vector_stores.base import VectorStoreDocument
+            
+            # 创建一些示例文档，使用实体的描述
+            sample_docs = []
+            for entity in entities:
+                if entity.description:
+                    doc = VectorStoreDocument(
+                        id=entity.id,
+                        text=entity.description,
+                        vector=[0.0] * 1536,  # 创建一个默认的向量
+                        attributes={"title": entity.title, "type": entity.type or ""}
+                    )
+                    sample_docs.append(doc)
+            
+            # 如果有实体描述，加载到向量存储
+            if sample_docs:
+                logger.info(f"加载{len(sample_docs)}个实体描述到向量存储")
+                description_embedding_store.load_documents(sample_docs)
+            else:
+                # 如果没有实体描述，创建一个空文档以初始化集合
+                logger.info("没有实体描述，创建一个空文档以初始化集合")
+                empty_doc = VectorStoreDocument(
+                    id="empty",
+                    text="",
+                    vector=[0.0] * 1536,
+                    attributes={}
+                )
+                description_embedding_store.load_documents([empty_doc])
             
             # 由于我们没有实际的社区报告，创建一个空列表
             reports = []
