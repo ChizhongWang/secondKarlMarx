@@ -133,17 +133,31 @@ class KGEnhancedLLM:
             # 创建文档集合
             documents = []
             for entity in entities:
-                # 创建一个默认的向量（全0向量）
-                default_vector = [0.0] * 1536  # 使用1536维向量，这是常见的嵌入维度
+                # 使用DMX API生成嵌入向量
+                try:
+                    # 使用ModelManager获取嵌入模型
+                    embedding_model = ModelManager().get_or_create_embedding_model(
+                        "entity_embedding_model",
+                        "openai_embedding",
+                        model="text-embedding-ada-002",
+                        encoding_model="cl100k_base",
+                        api_key=os.environ.get("DMX_API_KEY"),
+                        api_base="https://www.dmxapi.cn/v1"
+                    )
+                    
+                    # 为实体描述生成嵌入向量
+                    entity_vector = embedding_model.get_embedding(entity.description)
+                    logger.info(f"为实体 '{entity.id}' 生成嵌入向量成功")
+                except Exception as e:
+                    # 如果生成嵌入向量失败，使用全0向量作为回退
+                    logger.error(f"为实体 '{entity.id}' 生成嵌入向量失败: {str(e)}", exc_info=True)
+                    entity_vector = [0.0] * 1536  # 使用1536维向量作为回退
                 
                 doc = VectorStoreDocument(
                     id=entity.id,
                     text=entity.description,
-                    vector=default_vector,
-                    attributes={
-                        "title": entity.title,
-                        "type": entity.type
-                    }
+                    vector=entity_vector,
+                    attributes={"entity_id": entity.id}
                 )
                 documents.append(doc)
             
