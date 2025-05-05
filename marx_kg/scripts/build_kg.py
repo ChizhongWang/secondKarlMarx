@@ -164,23 +164,22 @@ async def build_knowledge_graph():
     strategy = None
     if extract_config and hasattr(extract_config, 'resolved_strategy') and default_chat_model:
         strategy = extract_config.resolved_strategy(str(PROJECT_ROOT), default_chat_model)
+        
+        # 添加llm配置到策略中
+        if strategy:
+            strategy["llm"] = {
+                "type": "openai_chat",
+                "model": "gpt-3.5-turbo",
+                "api_key": os.environ.get("DMX_API_KEY"),
+                "api_base": "https://www.dmxapi.cn/v1",
+                "encoding_model": "cl100k_base"
+            }
     
     try:
         # 使用API提取实体和关系
         logger.info("使用DMX API提取实体和关系")
         
         try:
-            # 准备策略参数，添加llm配置
-            strategy_args = {
-                "llm": {
-                    "type": "openai_chat",
-                    "model": "gpt-3.5-turbo",
-                    "api_key": os.environ.get("DMX_API_KEY"),
-                    "api_base": "https://www.dmxapi.cn/v1",
-                    "encoding_model": "cl100k_base"
-                }
-            }
-            
             entities, relationships = await extract_graph(
                 text_units=text_units,
                 callbacks=callbacks,
@@ -188,7 +187,6 @@ async def build_knowledge_graph():
                 text_column=text_column,
                 id_column=id_column,
                 strategy=strategy,
-                strategy_args=strategy_args,  # 添加策略参数
                 async_mode=AsyncType.AsyncIO,
                 entity_types=entity_types,
                 num_threads=4
