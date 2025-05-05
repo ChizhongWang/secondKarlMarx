@@ -258,7 +258,9 @@ async def build_knowledge_graph():
     
     # 添加边
     for _, row in relationships.iterrows():
-        G.add_edge(row['source'], row['target'], description=row['description'], strength=row['strength'])
+        # 检查是否有strength字段，如果没有，设置默认值为0.5
+        strength = row['strength'] if 'strength' in row else 0.5
+        G.add_edge(row['source'], row['target'], description=row['description'], strength=strength)
     
     # 保存图谱 - 使用pickle替代write_gpickle
     graph_path = kg_dir / "knowledge_graph.pickle"
