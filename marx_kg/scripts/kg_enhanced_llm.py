@@ -247,8 +247,81 @@ class KGEnhancedLLM:
             # 尝试使用GraphRAG查询引擎
             if hasattr(self, 'search_engine') and self.search_engine is not None:
                 try:
-                    # 使用search方法查询知识图谱
-                    result = asyncio.run(self.search_engine.search(query_text))
+                    # 为查询生成嵌入向量
+                    embedding_config = LanguageModelConfig(
+                        type="openai_embedding",
+                        model="text-embedding-ada-002",
+                        encoding_model="cl100k_base",
+                        api_key=os.environ.get("DMX_API_KEY"),
+                        api_base="https://www.dmxapi.cn/v1"
+                    )
+                    
+                    # 获取嵌入模型
+                    embedding_model = ModelManager().get_or_create_embedding_model(
+                        "query_embedding_model",
+                        "openai_embedding",
+                        config=embedding_config
+                    )
+                    
+                    # 生成查询嵌入向量
+                    query_embedding = embedding_model.embed(query_text)
+                    
+                    # 直接从LanceDB查询相关实体
+                    logger.info("直接从LanceDB查询相关实体")
+                    # 获取向量存储
+                    vector_store = self.search_engine.context_builder.description_embedding_store
+                    
+                    # 使用查询向量直接搜索
+                    search_results = vector_store.search(
+                        query_embedding,
+                        k=5,  # 返回前5个最相关的实体
+                        include_metadata=True
+                    )
+                    
+                    # 提取相关实体ID
+                    entity_ids = []
+                    if search_results and len(search_results) > 0:
+                        for result in search_results:
+                            if 'entity_id' in result.get('attributes', {}):
+                                entity_id = result['attributes']['entity_id']
+                                entity_ids.append(entity_id)
+                                logger.info(f"找到相关实体: {entity_id}, 相似度: {result.get('score', 0)}")
+                    
+                    # 如果找到相关实体，构建上下文
+                    if entity_ids:
+                        # 查找相关实体
+                        related_entities = []
+                        for entity in self.entities:
+                            if entity.id in entity_ids:
+                                related_entities.append(entity)
+                        
+                        # 构建上下文
+                        context = "-----Entities-----\n"
+                        context += "id|entity|description|number of relationships\n"
+                        
+                        for entity in related_entities:
+                            context += f"{entity.id}|{entity.title}|{entity.description}|{len(self.graph.edges(entity.id))}\n"
+                        
+                        # 查找相关关系
+                        context += "\n-----Relationships-----\n"
+                        context += "source|target|description\n"
+                        
+                        for entity in related_entities:
+                            for _, target, data in self.graph.out_edges(entity.id, data=True):
+                                context += f"{entity.id}|{target}|{data.get('description', '')}\n"
+                        
+                        logger.info(f"直接查询结果: {context}")
+                        return context
+                    
+                    # 如果直接查询失败，尝试使用GraphRAG的search方法
+                    logger.info("直接查询失败，尝试使用GraphRAG的search方法")
+                    result = asyncio.run(self.search_engine.search(
+                        query=query_text,
+                        # 传递额外的参数给context_builder
+                        top_k_entities=5,
+                        top_k_relationships=10
+                    ))
+                    
                     if result and hasattr(result, 'context_text'):
                         logger.info(f"GraphRAG查询结果: {result.context_text}")
                         return result.context_text
