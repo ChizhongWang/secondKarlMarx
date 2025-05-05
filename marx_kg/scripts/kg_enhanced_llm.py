@@ -203,27 +203,26 @@ class KGEnhancedLLM:
                     # 使用GraphRAG的本地搜索引擎
                     # 但不使用内置的LLM功能，只获取上下文
                     # 这样可以避免GraphRAG使用DMX API进行聊天完成
-                    result = self.search_engine._build_local_search_context(query_text)
+                    context = self.search_engine.context_builder._build_local_context(
+                        selected_entities=self.search_engine.context_builder.entities.values(),
+                        max_context_tokens=2000,
+                        include_entity_rank=True,
+                        rank_description="number of relationships",
+                        include_relationship_weight=True,
+                        top_k_relationships=10,
+                        relationship_ranking_attribute="weight",
+                        return_candidate_context=False,
+                        column_delimiter="|"
+                    )
                     
                     # 格式化上下文信息
-                    context_text = "-----Entities-----\n"
-                    context_text += "id|entity|description|number of relationships\n"
-                    
-                    for entity in result.entities:
-                        num_relationships = 0
-                        for rel in result.relationships:
-                            if rel.source == entity.id or rel.target == entity.id:
-                                num_relationships += 1
-                        context_text += f"{entity.id}|{entity.title}|{entity.description}|{num_relationships}\n"
-                    
-                    context_text += "\n-----Relationships-----\n"
-                    context_text += "source|target|description|weight\n"
-                    
-                    for rel in result.relationships:
-                        context_text += f"{rel.source}|{rel.target}|{rel.description}|{rel.weight}\n"
-                    
-                    logger.info(f"GraphRAG查询结果: {context_text}")
-                    return context_text
+                    if context and len(context) >= 2:
+                        context_text = context[0]  # 获取第一个元素，即文本内容
+                        logger.info(f"GraphRAG查询结果: {context_text}")
+                        return context_text
+                    else:
+                        logger.warning("GraphRAG查询返回的上下文为空或格式不正确")
+                        return "GraphRAG查询返回的上下文为空或格式不正确"
                 except Exception as e:
                     logger.error(f"使用GraphRAG查询时出错: {str(e)}", exc_info=True)
                     # 如果GraphRAG查询失败，回退到NetworkX查询
