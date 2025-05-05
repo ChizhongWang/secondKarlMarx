@@ -151,7 +151,7 @@ class KGEnhancedLLM:
             logger.info(f"加载{len(documents)}个实体描述到向量存储")
             vector_store.load_documents(documents)
             
-            # 创建GraphRAG配置
+            # 创建嵌入模型配置
             embedding_model_config = LanguageModelConfig(
                 type="openai_embedding",
                 model="text-embedding-ada-002",
@@ -159,7 +159,17 @@ class KGEnhancedLLM:
                 api_key=os.environ.get("DMX_API_KEY"),
                 api_base="https://www.dmxapi.cn/v1"
             )
-            
+
+            # 创建聊天模型配置
+            chat_model_config = LanguageModelConfig(
+                type="openai_chat",  # 使用正确的类型
+                model="gpt-3.5-turbo",
+                encoding_model="cl100k_base",
+                api_key=os.environ.get("DMX_API_KEY"),
+                api_base="https://www.dmxapi.cn/v1"
+            )
+
+            # 创建本地搜索配置
             local_search_config = LocalSearchConfig(
                 text_unit_prop=0.6,
                 community_prop=0.4,
@@ -168,11 +178,12 @@ class KGEnhancedLLM:
                 embedding_model_id="default_embedding_model",
                 chat_model_id="default_chat_model"
             )
-            
+
+            # 创建GraphRagConfig对象
             config = GraphRagConfig(
                 models={
                     "default_embedding_model": embedding_model_config,
-                    "default_chat_model": embedding_model_config  # 使用相同的配置，但不会实际使用
+                    "default_chat_model": chat_model_config  # 使用正确的聊天模型配置
                 },
                 local_search=local_search_config
             )
