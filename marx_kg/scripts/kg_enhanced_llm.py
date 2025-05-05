@@ -13,6 +13,7 @@ import networkx as nx
 import tiktoken
 from pathlib import Path
 import argparse
+from typing import List, Dict, Optional, Any, Tuple
 
 # 添加项目根目录到Python路径
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -316,12 +317,58 @@ class KGEnhancedLLM:
         # 查询LLM
         return self.query_llm(messages)
 
-def run_interactive_mode(llm_api_url, use_kg):
+def query_dmx_api(query: str, kg_enhancer: Optional[KGEnhancedLLM] = None) -> str:
+    """直接使用DMX API查询，不依赖本地API服务器"""
+    # 获取知识图谱上下文
+    kg_context = ""
+    if kg_enhancer:
+        kg_result = kg_enhancer.query_kg(query)
+        if kg_result:
+            kg_context = "以下是与问题相关的知识图谱信息：\n" + kg_result + "\n\n请基于上述信息回答问题。"
+    
+    # 构建提示
+    if kg_context:
+        prompt = f"{kg_context}\n\n问题: {query}"
+    else:
+        prompt = query
+    
+    # 调用DMX API
+    api_key = os.environ.get("DMX_API_KEY")
+    if not api_key:
+        return "错误：未设置DMX_API_KEY环境变量"
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    }
+    
+    data = {
+        "model": "gpt-3.5-turbo",
+        "messages": [
+            {"role": "system", "content": "你是一个基于马克思主义理论的助手，专注于解释马克思和恩格斯的思想。"},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.7
+    }
+    
+    try:
+        response = requests.post(
+            "https://www.dmxapi.cn/v1/chat/completions",
+            headers=headers,
+            json=data
+        )
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"]
+    except Exception as e:
+        return f"API调用错误: {str(e)}"
+
+def run_interactive_mode(llm_api_url, use_kg, no_api):
     """运行交互式模式"""
     kg_llm = KGEnhancedLLM(llm_api_url=llm_api_url, use_kg=use_kg)
     
     print("\n=== 马克思恩格斯知识图谱增强LLM ===")
     print(f"知识图谱增强: {'启用' if use_kg else '禁用'}")
+    print(f"使用DMX API: {'是' if no_api else '否'}")
     print("输入您的问题，或输入'exit'退出\n")
     
     while True:
@@ -336,7 +383,10 @@ def run_interactive_mode(llm_api_url, use_kg):
             logger.info(f"用户查询: {user_query}")
             
             # 执行查询
-            response = kg_llm.answer(user_query)
+            if no_api:
+                response = query_dmx_api(user_query, kg_llm)
+            else:
+                response = kg_llm.answer(user_query)
             
             print(f"\n回答: {response}")
             
@@ -355,6 +405,7 @@ def main():
     parser.add_argument("--api-url", type=str, default="http://localhost:8000/v1/chat/completions",
                         help="LLM API的URL")
     parser.add_argument("--no-kg", action="store_true", help="禁用知识图谱增强")
+    parser.add_argument("--no-api", action="store_true", help="不使用API，直接使用DMX API")
     parser.add_argument("--query", type=str, help="单次查询的问题")
     
     args = parser.parse_args()
@@ -362,12 +413,15 @@ def main():
     if args.query:
         # 单次查询模式
         kg_llm = KGEnhancedLLM(llm_api_url=args.api_url, use_kg=not args.no_kg)
-        response = kg_llm.answer(args.query)
-        print(f"\n问题: {args.query}")
-        print(f"\n回答: {response}")
+        if args.no_api:
+            response = query_dmx_api(args.query, kg_llm)
+            print(f"\n回答: {response}")
+        else:
+            response = kg_llm.answer(args.query)
+            print(f"\n回答: {response}")
     else:
         # 交互式模式
-        run_interactive_mode(args.api_url, not args.no_kg)
+        run_interactive_mode(args.api_url, not args.no_kg, args.no_api)
 
 if __name__ == "__main__":
     main()

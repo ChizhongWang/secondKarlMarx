@@ -1,10 +1,19 @@
 #!/bin/bash
 # 安装LLaMA Factory及其依赖
 
-# 卸载当前的llama-factory（如果已安装）
-pip uninstall -y llama-factory
+# 卸载当前的llama-factory和相关依赖
+pip uninstall -y llama-factory torch torchvision torchaudio transformers peft accelerate datasets trl
 
-# 直接从GitHub安装LLaMA Factory，让它自动处理依赖关系
+# 安装LLaMA Factory推荐的依赖版本
+echo "安装LLaMA Factory推荐的依赖版本..."
+pip install torch==2.6.0 torchvision torchaudio
+pip install transformers==4.50.0
+pip install datasets==3.2.0
+pip install accelerate==1.2.1
+pip install peft==0.15.1
+pip install trl==0.9.6
+
+# 直接从GitHub安装LLaMA Factory
 echo "从GitHub安装LLaMA Factory..."
 pip install git+https://github.com/hiyouga/LLaMA-Factory.git
 
