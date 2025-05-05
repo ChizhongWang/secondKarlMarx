@@ -86,7 +86,10 @@ class KGEnhancedLLM:
                     title=row['title'],
                     type=row['type'],
                     description=row['description'],
-                    document_id=''  # 没有document_id，使用空字符串
+                    # 如果有text_unit_ids列，则使用它
+                    text_unit_ids=row.get('text_unit_ids', '').split(',') if 'text_unit_ids' in row and row['text_unit_ids'] else None,
+                    # 如果有frequency列，将其作为rank
+                    rank=int(row['frequency']) if 'frequency' in row and row['frequency'] else 1
                 )
                 entities.append(entity)
             
@@ -97,7 +100,10 @@ class KGEnhancedLLM:
                     source=row['source'],
                     target=row['target'],
                     description=row['description'],
-                    document_id=''  # 没有document_id，使用空字符串
+                    # 如果有text_unit_ids列，则使用它
+                    text_unit_ids=row.get('text_unit_ids', '').split(',') if 'text_unit_ids' in row and row['text_unit_ids'] else None,
+                    # 如果有weight列，则使用它
+                    weight=float(row['weight']) if 'weight' in row and row['weight'] else 1.0
                 )
                 relationships.append(relationship)
             
