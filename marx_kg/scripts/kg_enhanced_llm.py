@@ -25,6 +25,8 @@ sys.path.append(str(GRAPHRAG_ROOT))
 # 导入GraphRAG
 from graphrag.config.load_config import load_config
 from graphrag.config.models.graph_rag_config import GraphRagConfig
+from graphrag.config.models.language_model_config import LanguageModelConfig
+from graphrag.config.models.local_search_config import LocalSearchConfig
 from graphrag.data_model.text_unit import TextUnit
 from graphrag.data_model.entity import Entity
 from graphrag.data_model.relationship import Relationship
@@ -149,30 +151,36 @@ class KGEnhancedLLM:
             logger.info(f"加载{len(documents)}个实体描述到向量存储")
             vector_store.load_documents(documents)
             
-            # 创建自定义GraphRAG配置
-            # 只使用DMX API进行嵌入，而不是聊天
-            config_dict = {
-                "models": {
-                    "default_embedding_model": {
-                        "type": "openai_embedding",
-                        "model": "text-embedding-ada-002",
-                        "encoding_model": "cl100k_base",
-                        "api_key": os.environ.get("DMX_API_KEY"),
-                        "api_base": "https://www.dmxapi.cn/v1"
-                    }
+            # 创建GraphRAG配置
+            embedding_model_config = LanguageModelConfig(
+                type="openai_embedding",
+                model="text-embedding-ada-002",
+                encoding_model="cl100k_base",
+                api_key=os.environ.get("DMX_API_KEY"),
+                api_base="https://www.dmxapi.cn/v1"
+            )
+            
+            local_search_config = LocalSearchConfig(
+                text_unit_prop=0.6,
+                community_prop=0.4,
+                top_k_entities=15,
+                top_k_relationships=10,
+                embedding_model_id="default_embedding_model",
+                chat_model_id="default_chat_model"
+            )
+            
+            config = GraphRagConfig(
+                models={
+                    "default_embedding_model": embedding_model_config,
+                    "default_chat_model": embedding_model_config  # 使用相同的配置，但不会实际使用
                 },
-                "local_search": {
-                    "text_unit_prop": 0.6,
-                    "community_prop": 0.4,
-                    "top_k_entities": 15,
-                    "top_k_relationships": 10
-                }
-            }
+                local_search=local_search_config
+            )
             
             # 创建GraphRAG查询引擎
             # 使用自定义配置，只使用DMX API进行嵌入
             self.search_engine = get_local_search_engine(
-                config=config_dict,
+                config=config,
                 reports=[],  # 空的报告列表
                 text_units=[],  # 空的文本单元列表
                 entities=entities,
