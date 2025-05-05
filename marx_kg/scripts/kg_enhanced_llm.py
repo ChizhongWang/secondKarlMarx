@@ -63,138 +63,123 @@ class KGEnhancedLLM:
     def initialize_kg_query(self):
         """初始化知识图谱查询引擎"""
         try:
-            # 加载配置
-            config_path = PROJECT_ROOT / "config" / "graphrag_config.yaml"
+            # 加载配置文件
+            config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "graphrag_config.yaml")
             logger.info(f"加载配置文件: {config_path}")
-            config = load_config(PROJECT_ROOT, config_path)
             
-            # 加载知识图谱数据
-            kg_dir = PROJECT_ROOT / "data" / "kg"
-            entities_path = kg_dir / "entities.csv"
-            relationships_path = kg_dir / "relationships.csv"
+            # 创建临时目录用于LanceDB
+            temp_dir = tempfile.mkdtemp()
+            logger.info(f"创建LanceDB数据库目录: {temp_dir}")
             
+            # 加载实体和关系数据
+            entities_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "kg", "entities.csv")
+            relationships_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "kg", "relationships.csv")
             logger.info(f"加载实体数据: {entities_path}")
-            entities_df = pd.read_csv(entities_path)
-            
             logger.info(f"加载关系数据: {relationships_path}")
+            
+            # 读取CSV文件
+            entities_df = pd.read_csv(entities_path)
             relationships_df = pd.read_csv(relationships_path)
             
-            # 转换为GraphRAG数据模型
+            # 创建NetworkX图
+            self.graph = nx.DiGraph()
+            
+            # 添加实体节点
+            for _, row in entities_df.iterrows():
+                entity_id = row['title']  # 使用title作为实体ID
+                self.graph.add_node(entity_id, **row.to_dict())
+            
+            # 添加关系边
+            for _, row in relationships_df.iterrows():
+                source = row['source']
+                target = row['target']
+                self.graph.add_edge(source, target, **row.to_dict())
+            
+            # 创建实体和关系对象
             entities = []
             for _, row in entities_df.iterrows():
                 entity = Entity(
-                    id=row['title'],  # 使用title作为id
-                    short_id=row['title'][:10] if len(row['title']) > 10 else row['title'],  # 使用title的前10个字符作为short_id
+                    id=row['title'],  # 使用title作为实体ID
+                    short_id=row['title'],  # 使用title作为short_id
                     title=row['title'],
                     type=row['type'],
-                    description=row['description'],
-                    # 如果有text_unit_ids列，则使用它
-                    text_unit_ids=row.get('text_unit_ids', '').split(',') if 'text_unit_ids' in row and row['text_unit_ids'] else None,
-                    # 如果有frequency列，将其作为rank
-                    rank=int(row['frequency']) if 'frequency' in row and row['frequency'] else 1
+                    description=row.get('description', ''),
+                    embedding=None
                 )
                 entities.append(entity)
             
             relationships = []
             for _, row in relationships_df.iterrows():
-                rel_id = f"{row['source']}-{row['target']}"
                 relationship = Relationship(
-                    id=rel_id,  # 使用source-target作为id
-                    short_id=rel_id[:10] if len(rel_id) > 10 else rel_id,  # 使用id的前10个字符作为short_id
+                    id=f"{row['source']}-{row['target']}",  # 使用source-target作为关系ID
+                    short_id=f"{row['source']}-{row['target']}",  # 使用source-target作为short_id
+                    title=row.get('description', ''),
                     source=row['source'],
                     target=row['target'],
-                    description=row['description'],
-                    # 如果有text_unit_ids列，则使用它
-                    text_unit_ids=row.get('text_unit_ids', '').split(',') if 'text_unit_ids' in row and row['text_unit_ids'] else None,
-                    # 如果有weight列，则使用它
-                    weight=float(row['weight']) if 'weight' in row and row['weight'] else 1.0
+                    weight=float(row.get('strength', 0.5)),
+                    description=row.get('description', '')
                 )
                 relationships.append(relationship)
             
-            # 创建简单的文本单元
-            text_units = []
-            
             # 创建LanceDB向量存储
-            # 创建临时目录用于LanceDB数据库
-            import tempfile
-            db_dir = tempfile.mkdtemp()
-            logger.info(f"创建LanceDB数据库目录: {db_dir}")
+            vector_store = LanceDBVectorStore(collection_name="descriptions")
+            db_uri = os.path.join(temp_dir)
+            vector_store.connect(db_uri=db_uri)
             
-            # 初始化LanceDB向量存储
-            description_embedding_store = LanceDBVectorStore(
-                collection_name="descriptions",
-                db_uri=db_dir  # 直接使用文件路径，不添加uri://前缀
-            )
-            
-            # 连接到向量存储
-            description_embedding_store.connect(db_uri=db_dir)
-            
-            # 创建一个空的集合并加载一些示例文档
-            # 这是必要的，因为LanceDB需要至少一个文档才能进行搜索
-            from graphrag.vector_stores.base import VectorStoreDocument
-            
-            # 创建一些示例文档，使用实体的描述
-            sample_docs = []
+            # 创建文档集合
+            documents = []
             for entity in entities:
-                if entity.description:
-                    doc = VectorStoreDocument(
-                        id=entity.id,
-                        text=entity.description,
-                        vector=[0.0] * 1536,  # 创建一个默认的向量
-                        attributes={"title": entity.title, "type": entity.type or ""}
-                    )
-                    sample_docs.append(doc)
-            
-            # 如果有实体描述，加载到向量存储
-            if sample_docs:
-                logger.info(f"加载{len(sample_docs)}个实体描述到向量存储")
-                description_embedding_store.load_documents(sample_docs)
-            else:
-                # 如果没有实体描述，创建一个空文档以初始化集合
-                logger.info("没有实体描述，创建一个空文档以初始化集合")
-                empty_doc = VectorStoreDocument(
-                    id="empty",
-                    text="",
-                    vector=[0.0] * 1536,
-                    attributes={}
+                doc = VectorStoreDocument(
+                    id=entity.id,
+                    content=entity.description,
+                    metadata={
+                        "title": entity.title,
+                        "type": entity.type
+                    }
                 )
-                description_embedding_store.load_documents([empty_doc])
+                documents.append(doc)
             
-            # 由于我们没有实际的社区报告，创建一个空列表
-            reports = []
+            # 加载文档到向量存储
+            logger.info(f"加载{len(documents)}个实体描述到向量存储")
+            vector_store.load_documents(documents)
             
-            # 由于我们没有实际的协变量，创建一个空字典
-            covariates = {}
+            # 创建自定义GraphRAG配置
+            # 只使用DMX API进行嵌入，而不是聊天
+            config_dict = {
+                "models": {
+                    "default_embedding_model": {
+                        "type": "openai_embedding",
+                        "model": "text-embedding-ada-002",
+                        "encoding_model": "cl100k_base",
+                        "api_key": os.environ.get("DMX_API_KEY"),
+                        "api_base": "https://www.dmxapi.cn/v1"
+                    }
+                },
+                "local_search": {
+                    "text_unit_prop": 0.6,
+                    "community_prop": 0.4,
+                    "top_k_entities": 15,
+                    "top_k_relationships": 10
+                }
+            }
             
-            # 初始化本地搜索引擎
+            # 创建GraphRAG查询引擎
+            # 使用自定义配置，只使用DMX API进行嵌入
             self.search_engine = get_local_search_engine(
-                config=config,
-                reports=reports,
-                text_units=text_units,
+                config=config_dict,
                 entities=entities,
                 relationships=relationships,
-                covariates=covariates,
-                response_type="multiple paragraphs",
-                description_embedding_store=description_embedding_store,
-                callbacks=[QueryCallbacks()]
+                vector_store=vector_store,
+                callbacks=QueryCallbacks(),
+                use_drift=False
             )
             
             logger.info("GraphRAG查询引擎初始化完成")
-        except Exception as e:
-            logger.error(f"初始化GraphRAG查询引擎时出错: {str(e)}", exc_info=True)
-            self.search_engine = None
             
-            # 回退到直接加载NetworkX图谱
-            try:
-                kg_path = PROJECT_ROOT / "data" / "kg" / "knowledge_graph.pickle"
-                logger.info(f"回退到直接加载NetworkX图谱: {kg_path}")
-                
-                with open(kg_path, 'rb') as f:
-                    self.graph = pickle.load(f)
-                logger.info(f"NetworkX图谱加载完成，包含 {len(self.graph.nodes)} 个节点和 {len(self.graph.edges)} 条边")
-            except Exception as e2:
-                logger.error(f"加载NetworkX图谱时出错: {str(e2)}", exc_info=True)
-                self.graph = None
+        except Exception as e:
+            logger.error(f"初始化知识图谱查询引擎时出错: {str(e)}", exc_info=True)
+            self.search_engine = None
+            self.graph = None
     
     def query_kg(self, query_text):
         """查询知识图谱
@@ -215,17 +200,29 @@ class KGEnhancedLLM:
             if hasattr(self, 'search_engine') and self.search_engine is not None:
                 try:
                     # 使用GraphRAG的本地搜索引擎
-                    # 创建一个事件循环来运行异步方法
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    try:
-                        # 在事件循环中运行异步方法
-                        result = loop.run_until_complete(self.search_engine.search(query_text))
-                        logger.info(f"GraphRAG查询结果: {result.context_text}")
-                        return result.context_text
-                    finally:
-                        # 确保关闭事件循环
-                        loop.close()
+                    # 但不使用内置的LLM功能，只获取上下文
+                    # 这样可以避免GraphRAG使用DMX API进行聊天完成
+                    result = self.search_engine._build_local_search_context(query_text)
+                    
+                    # 格式化上下文信息
+                    context_text = "-----Entities-----\n"
+                    context_text += "id|entity|description|number of relationships\n"
+                    
+                    for entity in result.entities:
+                        num_relationships = 0
+                        for rel in result.relationships:
+                            if rel.source == entity.id or rel.target == entity.id:
+                                num_relationships += 1
+                        context_text += f"{entity.id}|{entity.title}|{entity.description}|{num_relationships}\n"
+                    
+                    context_text += "\n-----Relationships-----\n"
+                    context_text += "source|target|description|weight\n"
+                    
+                    for rel in result.relationships:
+                        context_text += f"{rel.source}|{rel.target}|{rel.description}|{rel.weight}\n"
+                    
+                    logger.info(f"GraphRAG查询结果: {context_text}")
+                    return context_text
                 except Exception as e:
                     logger.error(f"使用GraphRAG查询时出错: {str(e)}", exc_info=True)
                     # 如果GraphRAG查询失败，回退到NetworkX查询
