@@ -198,7 +198,8 @@ class KGEnhancedLLM:
                 covariates={},  # 空的协变量字典
                 response_type="multiple paragraphs",
                 description_embedding_store=vector_store,
-                callbacks=QueryCallbacks()
+                callbacks=[QueryCallbacks()],  # 将QueryCallbacks对象包装在一个列表中
+                system_prompt="你是一个基于马克思主义理论的助手，请根据提供的上下文回答问题。"
             )
             
             logger.info("GraphRAG查询引擎初始化完成")
