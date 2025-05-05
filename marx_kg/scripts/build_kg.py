@@ -72,10 +72,8 @@ async def build_knowledge_graph():
     # 创建回调和缓存
     callbacks = ConsoleWorkflowCallbacks()  # 使用控制台回调，它会在控制台显示进度
     
-    # 使用JSON缓存而不是内存缓存，这样可以持久化缓存
-    cache_dir = PROJECT_ROOT / "data" / "cache"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    cache = JsonPipelineCache(cache_dir)
+    # 使用内存缓存而不是JSON缓存，避免PosixPath的child方法问题
+    cache = InMemoryCache()
     
     # 加载处理后的文档
     processed_data_path = PROJECT_ROOT / "data" / "processed" / "marx_engels_documents.json"
