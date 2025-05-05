@@ -8,17 +8,14 @@ pip uninstall -y llama-factory
 pip install torch==2.6.0
 pip install transformers==4.51.3
 
-# 从源码安装最新的llama-factory
-if [ ! -d "LLaMA-Factory" ]; then
-    echo "克隆LLaMA-Factory仓库..."
-    git clone https://github.com/hiyouga/LLaMA-Factory.git
+# 直接从GitHub安装LLaMA Factory
+echo "从GitHub安装LLaMA Factory..."
+pip install git+https://github.com/hiyouga/LLaMA-Factory.git
+
+# 检查安装是否成功
+if command -v llamafactory-cli &> /dev/null; then
+    echo "LLaMA Factory安装成功！"
+    echo "可以使用 'llamafactory-cli' 命令了"
+else
+    echo "LLaMA Factory安装可能失败，请检查错误信息"
 fi
-
-cd LLaMA-Factory
-echo "安装LLaMA-Factory..."
-pip install -e .
-
-# 返回原目录
-cd ..
-
-echo "LLaMA-Factory安装完成！"
