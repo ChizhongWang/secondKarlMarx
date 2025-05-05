@@ -18,7 +18,8 @@ sys.path.append(str(GRAPHRAG_ROOT))
 # 导入GraphRAG
 from graphrag.config.load_config import load_config
 from graphrag.config.enums import AsyncType
-from graphrag.callbacks.workflow_callbacks import WorkflowCallbacks
+from graphrag.callbacks.noop_workflow_callbacks import NoopWorkflowCallbacks
+from graphrag.callbacks.console_workflow_callbacks import ConsoleWorkflowCallbacks
 from graphrag.cache.pipeline_cache import PipelineCache
 
 # 导入操作函数 - 使用正确的导入路径
@@ -50,7 +51,7 @@ async def build_knowledge_graph():
     config = load_config(PROJECT_ROOT, config_path)
     
     # 创建回调和缓存
-    callbacks = WorkflowCallbacks()
+    callbacks = ConsoleWorkflowCallbacks()  # 使用控制台回调，它会在控制台显示进度
     cache = PipelineCache(config.cache)
     
     # 加载处理后的文档
