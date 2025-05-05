@@ -28,10 +28,11 @@ from graphrag.config.models.graph_rag_config import GraphRagConfig
 from graphrag.data_model.text_unit import TextUnit
 from graphrag.data_model.entity import Entity
 from graphrag.data_model.relationship import Relationship
-from graphrag.language_model.manager import ModelManager
-from graphrag.query.factory import get_local_search_engine
-from graphrag.callbacks.query_callbacks import QueryCallbacks
 from graphrag.vector_stores.lancedb import LanceDBVectorStore
+from graphrag.vector_stores.base import VectorStoreDocument
+from graphrag.callbacks.query_callbacks import QueryCallbacks
+from graphrag.query.factory import get_local_search_engine
+from graphrag.language_model.manager import ModelManager
 
 # 配置日志
 logging.basicConfig(
