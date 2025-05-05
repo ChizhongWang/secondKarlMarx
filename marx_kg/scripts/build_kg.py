@@ -7,6 +7,7 @@ import sys
 import json
 import logging
 import pandas as pd
+import networkx as nx
 from pathlib import Path
 
 # 添加项目根目录到Python路径
@@ -20,10 +21,11 @@ from graphrag.config.enums import AsyncType
 from graphrag.callbacks.workflow_callbacks import WorkflowCallbacks
 from graphrag.cache.pipeline_cache import PipelineCache
 
-# 导入操作函数而不是类
+# 导入操作函数 - 使用正确的导入路径
 from graphrag.index.operations.extract_graph.extract_graph import extract_graph
+from graphrag.index.operations.embed_text.chunk_text import chunk_text
 from graphrag.index.operations.embed_text.embed_text import embed_text
-from graphrag.index.operations.prune_graph.prune_graph import prune_graph
+from graphrag.index.operations.prune_graph import prune_graph
 from graphrag.index.operations.embed_graph.embed_graph import embed_graph
 from graphrag.index.operations.summarize_descriptions.summarize_descriptions import summarize_descriptions
 
@@ -81,61 +83,71 @@ async def build_knowledge_graph():
     
     logger.info(f"提取了 {len(entities)} 个实体和 {len(relationships)} 个关系")
     
+    # 创建图谱
+    logger.info("步骤2: 创建图谱")
+    G = nx.Graph()
+    
+    # 添加节点
+    for _, row in entities.iterrows():
+        G.add_node(
+            row['title'],
+            type=row['type'],
+            frequency=row['frequency'],
+            description=row['description']
+        )
+    
+    # 添加边
+    for _, row in relationships.iterrows():
+        G.add_edge(
+            row['source'],
+            row['target'],
+            weight=row['weight'],
+            description=row['description']
+        )
+    
+    logger.info(f"创建了包含 {len(G.nodes)} 个节点和 {len(G.edges)} 条边的图谱")
+    
     # 修剪图谱
-    logger.info("步骤2: 修剪图谱")
+    logger.info("步骤3: 修剪图谱")
     prune_config = config.prune_graph if hasattr(config, 'prune_graph') else {}
+    min_node_freq = prune_config.get('min_node_freq', 1)
+    min_node_degree = prune_config.get('min_node_degree', 1)
+    min_edge_weight_pct = prune_config.get('min_edge_weight_pct', 40)
     
-    pruned_entities, pruned_relationships = await prune_graph(
-        entities=entities,
-        relationships=relationships,
-        callbacks=callbacks,
-        cache=cache,
-        config=prune_config
+    pruned_graph = prune_graph(
+        graph=G,
+        min_node_freq=min_node_freq,
+        min_node_degree=min_node_degree,
+        min_edge_weight_pct=min_edge_weight_pct
     )
     
-    logger.info(f"修剪后保留 {len(pruned_entities)} 个实体和 {len(pruned_relationships)} 个关系")
+    logger.info(f"修剪后保留 {len(pruned_graph.nodes)} 个节点和 {len(pruned_graph.edges)} 条边")
     
-    # 生成嵌入
-    logger.info("步骤3: 生成文本嵌入")
-    embed_text_config = config.embed_text if hasattr(config, 'embed_text') else {}
+    # 保存图谱
+    logger.info("步骤4: 保存图谱")
+    kg_output_dir = PROJECT_ROOT / "kg" / "output"
+    kg_output_dir.mkdir(parents=True, exist_ok=True)
     
-    await embed_text(
-        text_units=text_units,
-        callbacks=callbacks,
-        cache=cache,
-        text_column="content",
-        id_column="id",
-        config=embed_text_config
-    )
+    # 保存为GraphML格式
+    graph_path = kg_output_dir / "marx_engels_kg.graphml"
+    nx.write_graphml(pruned_graph, graph_path)
     
-    # 嵌入图谱
-    logger.info("步骤4: 嵌入图谱")
-    embed_graph_config = config.embed_graph if hasattr(config, 'embed_graph') else {}
+    # 保存节点和边的信息
+    nodes_path = kg_output_dir / "nodes.json"
+    edges_path = kg_output_dir / "edges.json"
     
-    await embed_graph(
-        entities=pruned_entities,
-        relationships=pruned_relationships,
-        callbacks=callbacks,
-        cache=cache,
-        config=embed_graph_config
-    )
+    nodes_data = [{"id": n, **pruned_graph.nodes[n]} for n in pruned_graph.nodes]
+    edges_data = [{"source": u, "target": v, **pruned_graph.edges[u, v]} for u, v in pruned_graph.edges]
     
-    # 生成摘要描述
-    logger.info("步骤5: 生成实体摘要描述")
-    summarize_config = config.summarize_descriptions if hasattr(config, 'summarize_descriptions') else {}
+    with open(nodes_path, "w", encoding="utf-8") as f:
+        json.dump(nodes_data, f, ensure_ascii=False, indent=2)
     
-    await summarize_descriptions(
-        entities=pruned_entities,
-        relationships=pruned_relationships,
-        callbacks=callbacks,
-        cache=cache,
-        config=summarize_config
-    )
+    with open(edges_path, "w", encoding="utf-8") as f:
+        json.dump(edges_data, f, ensure_ascii=False, indent=2)
     
     logger.info("知识图谱构建完成")
+    logger.info(f"图谱文件保存在: {kg_output_dir}")
     
-    # 返回图谱路径
-    kg_output_dir = PROJECT_ROOT / "kg" / "output"
     return kg_output_dir
 
 async def main():
