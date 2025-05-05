@@ -189,13 +189,12 @@ class KGEnhancedLLM:
             )
             
             # 创建GraphRAG查询引擎
-            # 使用自定义配置，只使用DMX API进行嵌入
             self.search_engine = get_local_search_engine(
                 config=config,
                 reports=[],  # 空的报告列表
                 text_units=[],  # 空的文本单元列表
-                entities=entities,
-                relationships=relationships,
+                entities=list(entities),  # 将dict_values转换为列表
+                relationships=list(relationships),  # 将dict_values转换为列表
                 covariates={},  # 空的协变量字典
                 response_type="multiple paragraphs",
                 description_embedding_store=vector_store,
@@ -228,28 +227,22 @@ class KGEnhancedLLM:
             if hasattr(self, 'search_engine') and self.search_engine is not None:
                 try:
                     # 使用GraphRAG的本地搜索引擎
-                    # 但不使用内置的LLM功能，只获取上下文
-                    # 这样可以避免GraphRAG使用DMX API进行聊天完成
-                    context = self.search_engine.context_builder._build_local_context(
-                        selected_entities=self.search_engine.context_builder.entities.values(),
-                        max_context_tokens=2000,
-                        include_entity_rank=True,
-                        rank_description="number of relationships",
-                        include_relationship_weight=True,
-                        top_k_relationships=10,
-                        relationship_ranking_attribute="weight",
-                        return_candidate_context=False,
-                        column_delimiter="|"
-                    )
-                    
-                    # 格式化上下文信息
-                    if context and len(context) >= 2:
-                        context_text = context[0]  # 获取第一个元素，即文本内容
-                        logger.info(f"GraphRAG查询结果: {context_text}")
-                        return context_text
-                    else:
-                        logger.warning("GraphRAG查询返回的上下文为空或格式不正确")
-                        return "GraphRAG查询返回的上下文为空或格式不正确"
+                    try:
+                        # 尝试使用context_builder构建上下文
+                        context = self.search_engine.context_builder._build_local_context(
+                            query_text,
+                            self.search_engine.config.local_search.top_k_entities,
+                            self.search_engine.config.local_search.top_k_relationships,
+                            self.search_engine.config.local_search.text_unit_prop,
+                            self.search_engine.config.local_search.community_prop,
+                        )
+                        logger.info(f"GraphRAG查询结果: {context}")
+                        return context
+                    except TypeError as te:
+                        # 处理dict_values不可索引的问题
+                        logger.error(f"构建上下文时出错: {str(te)}", exc_info=True)
+                        # 回退到NetworkX查询
+                        raise Exception("回退到NetworkX查询")
                 except Exception as e:
                     logger.error(f"使用GraphRAG查询时出错: {str(e)}", exc_info=True)
                     # 如果GraphRAG查询失败，回退到NetworkX查询
