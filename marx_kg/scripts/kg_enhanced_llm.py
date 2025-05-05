@@ -28,7 +28,7 @@ from graphrag.data_model.entity import Entity
 from graphrag.data_model.relationship import Relationship
 from graphrag.language_model.manager import ModelManager
 from graphrag.query.factory import get_local_search_engine
-from graphrag.callbacks.query_callbacks import NoopQueryCallbacks
+from graphrag.callbacks.query_callbacks import QueryCallbacks
 from graphrag.vector_stores.in_memory import InMemoryVectorStore
 
 # 配置日志
@@ -123,7 +123,7 @@ class KGEnhancedLLM:
                 covariates=covariates,
                 response_type="multiple paragraphs",
                 description_embedding_store=description_embedding_store,
-                callbacks=[NoopQueryCallbacks()]
+                callbacks=[QueryCallbacks()]
             )
             
             logger.info("GraphRAG查询引擎初始化完成")
