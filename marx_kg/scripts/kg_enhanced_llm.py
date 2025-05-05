@@ -83,6 +83,7 @@ class KGEnhancedLLM:
             for _, row in entities_df.iterrows():
                 entity = Entity(
                     id=row['title'],  # 使用title作为id
+                    short_id=row['title'][:10] if len(row['title']) > 10 else row['title'],  # 使用title的前10个字符作为short_id
                     title=row['title'],
                     type=row['type'],
                     description=row['description'],
@@ -95,8 +96,10 @@ class KGEnhancedLLM:
             
             relationships = []
             for _, row in relationships_df.iterrows():
+                rel_id = f"{row['source']}-{row['target']}"
                 relationship = Relationship(
-                    id=f"{row['source']}-{row['target']}",  # 使用source-target作为id
+                    id=rel_id,  # 使用source-target作为id
+                    short_id=rel_id[:10] if len(rel_id) > 10 else rel_id,  # 使用id的前10个字符作为short_id
                     source=row['source'],
                     target=row['target'],
                     description=row['description'],
