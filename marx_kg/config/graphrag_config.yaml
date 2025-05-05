@@ -4,19 +4,21 @@
 models:
   # 聊天模型配置
   default_chat_model:
-    type: openai_chat
-    model: qwen2.5-7b-instruct  # 您的微调后的Qwen模型名称
-    encoding_model: cl100k_base  # 直接指定编码器名称，而不是通过模型名称推断
-    api_base: http://localhost:8000  # 您的本地模型服务器地址
-    api_key: dummy-key  # 如果您的本地服务器不需要API密钥，可以使用任意值
+    type: openai
+    model_name: gpt-3.5-turbo
+    encoding_model: cl100k_base
+    api_key: ${DMX_API_KEY}
+    api_base: https://www.dmxapi.cn/v1
+    temperature: 0
+    max_tokens: 2048
   
   # 嵌入模型配置
   default_embedding_model:
-    type: openai_embedding
-    model: text-embedding-3-small  # 或者您的本地嵌入模型
-    encoding_model: cl100k_base  # 直接指定编码器名称
-    api_base: http://localhost:8000  # 您的本地模型服务器地址
-    api_key: dummy-key
+    type: openai
+    model_name: text-embedding-ada-002
+    encoding_model: cl100k_base
+    api_key: ${DMX_API_KEY}
+    api_base: https://www.dmxapi.cn/v1
 
 # 输入配置
 input:
@@ -44,13 +46,23 @@ chunks:
 # 图提取配置
 extract_graph:
   entity_types:
-    - "PERSON"      # 人物
-    - "ORGANIZATION"  # 组织
-    - "LOCATION"    # 地点
-    - "DATE"        # 日期
-    - "EVENT"       # 事件
-    - "WORK_OF_ART"  # 作品
-    - "CONCEPT"     # 概念
+    - PERSON
+    - ORGANIZATION
+    - LOCATION
+    - DATE
+    - EVENT
+    - WORK_OF_ART
+    - CONCEPT
+  strategy:
+    prompt_template_path: ${PROJECT_ROOT}/graphrag/graphrag/index/operations/extract_graph/prompts/extract_graph.prompt
+    examples_path: ${PROJECT_ROOT}/graphrag/graphrag/index/operations/extract_graph/prompts/extract_graph_examples.json
+    entity_name_column: title
+    entity_type_column: type
+    entity_description_column: description
+    source_entity_column: source
+    target_entity_column: target
+    relationship_description_column: description
+    relationship_strength_column: strength
   max_gleanings: 5  # 每个文本块提取的最大实体数量
 
 # 文本嵌入配置
@@ -73,3 +85,15 @@ local_search:
   community_prop: 0.4  # 社区相关性权重
   top_k_entities: 15   # 返回的最大实体数量
   top_k_relationships: 10  # 返回的最大关系数量
+
+# 路径配置
+paths:
+  data:
+    input: ${PROJECT_ROOT}/marx_kg/data/processed/marx_engels_documents.json
+    output: ${PROJECT_ROOT}/marx_kg/data/kg
+  cache:
+    root: ${PROJECT_ROOT}/marx_kg/data/cache
+
+# 日志配置
+logging:
+  level: INFO

@@ -1,225 +1,246 @@
-"""
-MCP服务器集成GraphRAG知识图谱
-为本地笔记本提供远程访问secondKarlMarx和马克思恩格斯知识图谱的能力
-"""
-import os
-import sys
-import json
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import logging
-import argparse
-from pathlib import Path
-from typing import Dict, Any, List, Optional
-
-# 添加项目根目录到Python路径
-PROJECT_ROOT = Path(__file__).parent.parent
-GRAPHRAG_ROOT = PROJECT_ROOT.parent / "graphrag"
-sys.path.append(str(GRAPHRAG_ROOT))
-sys.path.append(str(PROJECT_ROOT.parent))  # 添加secondKarlMarx根目录
-
-# 加载模型配置
-MODEL_CONFIG_PATH = Path(PROJECT_ROOT.parent) / "mcp" / "model_config.json"
-if MODEL_CONFIG_PATH.exists():
-    with open(MODEL_CONFIG_PATH, "r") as f:
-        MODEL_CONFIG = json.load(f)
-    logger.info(f"已加载模型配置: {MODEL_CONFIG_PATH}")
-else:
-    MODEL_CONFIG = {}
-    logger.warning(f"未找到模型配置文件: {MODEL_CONFIG_PATH}")
-
-# 导入kg_tool
-from marx_kg.scripts.kg_tool import query_marx_kg
+import torch
+import json
+import os
+import time
+from typing import List, Dict, Any, Optional
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+import uvicorn
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # 配置日志
 logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("mcp_server.log"),
-        logging.StreamHandler()
-    ]
 )
 logger = logging.getLogger(__name__)
 
-# 尝试导入MCP相关模块
-try:
-    from mcp.server import MCPServer
-    from mcp.models import ChatMessage, ChatCompletionRequest, ChatCompletionResponse, ToolCall, Tool
-    HAS_MCP = True
-except ImportError:
-    logger.warning("未找到MCP模块，将使用模拟实现")
-    HAS_MCP = False
-    # 定义模拟的MCP类
-    class MCPServer:
-        def __init__(self, *args, **kwargs):
-            pass
-        def run(self, *args, **kwargs):
-            logger.error("MCP模块未安装，无法启动服务器")
-            sys.exit(1)
-    
-    class ChatMessage:
-        def __init__(self, role, content):
-            self.role = role
-            self.content = content
-    
-    class ChatCompletionRequest:
-        def __init__(self, messages, model, tools=None):
-            self.messages = messages
-            self.model = model
-            self.tools = tools
-    
-    class ChatCompletionResponse:
-        def __init__(self, choices):
-            self.choices = choices
-    
-    class ToolCall:
-        def __init__(self, id, name, arguments):
-            self.id = id
-            self.name = name
-            self.arguments = arguments
-    
-    class Tool:
-        def __init__(self, name, description, parameters):
-            self.name = name
-            self.description = description
-            self.parameters = parameters
+# 加载模型配置
+MODEL_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "../../mcp/model_config.json")
+with open(MODEL_CONFIG_PATH, "r") as f:
+    MODEL_CONFIG = json.load(f)
 
-# 定义知识图谱查询工具
-KG_TOOL = {
-    "name": "query_marx_kg",
-    "description": "查询马克思恩格斯知识图谱，获取相关信息",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "query": {
-                "type": "string",
-                "description": "要查询的问题或关键词"
-            }
-        },
-        "required": ["query"]
-    }
-}
+# 创建FastAPI应用
+app = FastAPI(title="Qwen API Server", description="OpenAI API compatible server for Qwen model")
 
-class SecondKarlMarxMCPServer(MCPServer):
-    """
-    扩展MCP服务器，集成马克思恩格斯知识图谱查询功能
-    """
-    
-    def __init__(self, model_path: str = None, host: str = "0.0.0.0", port: int = 8000):
-        """
-        初始化服务器
-        
-        Args:
-            model_path: secondKarlMarx模型路径
-            host: 服务器主机地址
-            port: 服务器端口
-        """
-        # 如果未指定模型路径，使用配置文件中的路径
-        if model_path is None and MODEL_CONFIG:
-            model_path = MODEL_CONFIG.get("model_name_or_path")
-            logger.info(f"使用配置文件中的模型路径: {model_path}")
-            
-        super().__init__(model_path=model_path, host=host, port=port)
-        self.tools = [Tool(**KG_TOOL)]
-        logger.info(f"已加载知识图谱查询工具: {KG_TOOL['name']}")
-        
-        # 如果配置文件中有adapter路径，加载adapter
-        if MODEL_CONFIG and MODEL_CONFIG.get("adapter_name_or_path"):
-            self.adapter_path = MODEL_CONFIG.get("adapter_name_or_path")
-            logger.info(f"使用配置文件中的adapter路径: {self.adapter_path}")
-        else:
-            self.adapter_path = None
-    
-    def handle_tool_calls(self, tool_calls: List[ToolCall]) -> str:
-        """
-        处理工具调用
-        
-        Args:
-            tool_calls: 工具调用列表
-            
-        Returns:
-            工具调用结果
-        """
-        results = []
-        
-        for tool_call in tool_calls:
-            if tool_call.name == "query_marx_kg":
-                try:
-                    args = json.loads(tool_call.arguments)
-                    query = args.get("query", "")
-                    
-                    if not query:
-                        results.append({
-                            "tool_call_id": tool_call.id,
-                            "result": json.dumps({"error": "查询参数不能为空"})
-                        })
-                        continue
-                    
-                    # 调用知识图谱查询
-                    kg_result = query_marx_kg(query)
-                    
-                    results.append({
-                        "tool_call_id": tool_call.id,
-                        "result": json.dumps(kg_result, ensure_ascii=False)
-                    })
-                    
-                except Exception as e:
-                    logger.error(f"处理工具调用时出错: {str(e)}", exc_info=True)
-                    results.append({
-                        "tool_call_id": tool_call.id,
-                        "result": json.dumps({"error": f"处理工具调用时出错: {str(e)}"})
-                    })
-            else:
-                # 调用父类处理其他工具
-                return super().handle_tool_calls(tool_calls)
-        
-        return results
-    
-    def process_request(self, request: ChatCompletionRequest) -> ChatCompletionResponse:
-        """
-        处理聊天请求
-        
-        Args:
-            request: 聊天请求
-            
-        Returns:
-            聊天响应
-        """
-        # 添加工具到请求
-        if not hasattr(request, 'tools') or not request.tools:
-            request.tools = self.tools
-        
-        # 调用父类处理请求
-        return super().process_request(request)
+# 添加CORS中间件
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-def main():
-    """主函数"""
-    parser = argparse.ArgumentParser(description="SecondKarlMarx MCP服务器")
-    parser.add_argument("--model_path", type=str, required=False, help="secondKarlMarx模型路径")
-    parser.add_argument("--host", type=str, default="0.0.0.0", help="服务器主机地址")
-    parser.add_argument("--port", type=int, default=8000, help="服务器端口")
-    parser.add_argument("--config_path", type=str, default=None, help="模型配置文件路径")
-    args = parser.parse_args()
+# 全局变量存储模型和tokenizer
+model = None
+tokenizer = None
+chat_history = []
+
+# 定义API请求和响应模型
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+class ChatCompletionRequest(BaseModel):
+    model: str
+    messages: List[ChatMessage]
+    temperature: float = Field(0.7, ge=0, le=2)
+    top_p: float = Field(0.9, ge=0, le=1)
+    max_tokens: int = Field(1024, ge=1)
+    stream: bool = False
+
+class ChatCompletionResponse(BaseModel):
+    id: str
+    object: str
+    created: int
+    model: str
+    choices: List[Dict[str, Any]]
+    usage: Dict[str, int]
+
+class ModelListResponse(BaseModel):
+    object: str
+    data: List[Dict[str, Any]]
+
+# 加载模型函数
+def load_model_for_inference():
+    """加载LLaMA Factory微调模型"""
+    logger.info(f"Loading model {MODEL_CONFIG['model_name_or_path']}...")
     
-    # 如果指定了配置文件路径，加载该配置
-    if args.config_path:
-        global MODEL_CONFIG
-        with open(args.config_path, "r") as f:
-            MODEL_CONFIG = json.load(f)
-        logger.info(f"从命令行指定的路径加载模型配置: {args.config_path}")
-    
-    if not HAS_MCP:
-        logger.error("未找到MCP模块，请先安装MCP")
-        sys.exit(1)
-    
-    # 启动服务器
-    server = SecondKarlMarxMCPServer(
-        model_path=args.model_path,
-        host=args.host,
-        port=args.port
+    # 加载原始模型
+    model = AutoModelForCausalLM.from_pretrained(
+        MODEL_CONFIG["model_name_or_path"],
+        device_map="auto",
+        torch_dtype=torch.float16
     )
     
-    logger.info(f"启动SecondKarlMarx MCP服务器，地址: {args.host}:{args.port}")
-    server.run()
+    # 加载分词器
+    tokenizer = AutoTokenizer.from_pretrained(
+        MODEL_CONFIG["model_name_or_path"],
+        trust_remote_code=True
+    )
+    
+    # 加载LoRA适配器（如果指定）
+    if MODEL_CONFIG.get("adapter_name_or_path"):
+        logger.info(f"Loading LoRA adapter from {MODEL_CONFIG['adapter_name_or_path']}...")
+        from peft import PeftModel
+        model = PeftModel.from_pretrained(
+            model,
+            MODEL_CONFIG["adapter_name_or_path"],
+            torch_dtype=torch.float16
+        )
+    
+    logger.info("Model loaded successfully!")
+    return model, tokenizer
+
+# 聊天函数
+def generate_response(messages: List[ChatMessage]) -> str:
+    """生成回复"""
+    global model, tokenizer
+    
+    start_time = time.time()
+    
+    # 将消息格式化为模型输入
+    template = MODEL_CONFIG.get("template", "qwen")
+    
+    # 构建提示
+    if template == "qwen":
+        prompt = ""
+        for msg in messages:
+            if msg.role == "system":
+                prompt += f" system\n{msg.content} \n"
+            elif msg.role == "user":
+                prompt += f" user\n{msg.content} \n"
+            elif msg.role == "assistant":
+                prompt += f" assistant\n{msg.content} \n"
+        
+        # 添加最后的assistant标记
+        prompt += " assistant\n"
+    else:
+        # 简单拼接
+        prompt = "\n".join([f"{msg.role}: {msg.content}" for msg in messages])
+        prompt += "\nassistant: "
+    
+    logger.info(f"生成提示: {prompt[:100]}...")
+    
+    try:
+        # 生成回复
+        inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+        
+        # 记录tokenization时间
+        tokenize_time = time.time() - start_time
+        logger.info(f"Tokenization完成，耗时: {tokenize_time:.2f}秒")
+        
+        # 生成回复
+        gen_start = time.time()
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=MODEL_CONFIG.get("max_new_tokens", 512),
+            temperature=MODEL_CONFIG.get("temperature", 0.7),
+            top_p=MODEL_CONFIG.get("top_p", 0.9),
+            repetition_penalty=MODEL_CONFIG.get("repetition_penalty", 1.1)
+        )
+        
+        # 记录生成时间
+        gen_time = time.time() - gen_start
+        logger.info(f"生成完成，耗时: {gen_time:.2f}秒")
+        
+        # 解码回复
+        decode_start = time.time()
+        full_output = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        
+        # 提取助手回复部分
+        if template == "qwen":
+            # 对于Qwen模板，提取最后一个assistant部分
+            response = full_output.split(" assistant\n")[-1].split(" ")[0].strip()
+        else:
+            # 对于简单模板，提取assistant:之后的内容
+            response = full_output.split("assistant: ")[-1].strip()
+        
+        # 记录解码时间
+        decode_time = time.time() - decode_start
+        logger.info(f"解码完成，耗时: {decode_time:.2f}秒")
+        
+        # 记录总时间
+        total_time = time.time() - start_time
+        logger.info(f"总处理时间: {total_time:.2f}秒")
+        
+        return response
+    except Exception as e:
+        logger.error(f"生成回复时出错: {str(e)}")
+        return f"抱歉，处理您的请求时出现错误: {str(e)}"
+
+# API端点
+@app.get("/v1/models")
+async def list_models():
+    """列出可用模型"""
+    return ModelListResponse(
+        object="list",
+        data=[
+            {
+                "id": "qwen2.5-7b-instruct",
+                "object": "model",
+                "created": int(time.time()),
+                "owned_by": "user"
+            }
+        ]
+    )
+
+@app.post("/v1/chat/completions")
+async def chat_completions(request: ChatCompletionRequest):
+    """聊天补全API"""
+    global model, tokenizer
+    
+    # 确保模型已加载
+    if model is None or tokenizer is None:
+        model, tokenizer = load_model_for_inference()
+    
+    try:
+        # 生成回复
+        response_text = generate_response(request.messages)
+        
+        # 构建响应
+        return ChatCompletionResponse(
+            id=f"chatcmpl-{int(time.time())}",
+            object="chat.completion",
+            created=int(time.time()),
+            model=request.model,
+            choices=[
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": response_text
+                    },
+                    "finish_reason": "stop"
+                }
+            ],
+            usage={
+                "prompt_tokens": 0,  # 简化处理，不计算实际token数
+                "completion_tokens": 0,
+                "total_tokens": 0
+            }
+        )
+    except Exception as e:
+        logger.error(f"处理聊天请求时出错: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    main()
+    # 加载模型
+    model, tokenizer = load_model_for_inference()
+    
+    # 预热模型
+    logger.info("预热模型...")
+    dummy_messages = [ChatMessage(role="user", content="你好")]
+    _ = generate_response(dummy_messages)
+    logger.info("模型预热完成")
+    
+    # 启动服务器
+    logger.info("启动OpenAI兼容的API服务器...")
+    uvicorn.run(app, host="0.0.0.0", port=8000)
