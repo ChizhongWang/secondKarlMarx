@@ -226,87 +226,56 @@ class KGEnhancedLLM:
             # 尝试使用GraphRAG查询引擎
             if hasattr(self, 'search_engine') and self.search_engine is not None:
                 try:
-                    # 使用GraphRAG的本地搜索引擎
-                    try:
-                        # 尝试使用context_builder构建上下文
-                        context = self.search_engine.context_builder._build_local_context(
-                            query_text,
-                            top_k_entities=15,  # 硬编码参数
-                            top_k_relationships=10,  # 硬编码参数
-                            text_unit_prop=0.6,  # 硬编码参数
-                            community_prop=0.4,  # 硬编码参数
-                        )
-                        logger.info(f"GraphRAG查询结果: {context}")
-                        return context
-                    except TypeError as te:
-                        # 处理dict_values不可索引的问题
-                        logger.error(f"构建上下文时出错: {str(te)}", exc_info=True)
+                    # 使用search方法查询知识图谱
+                    result = asyncio.run(self.search_engine.search(query_text))
+                    if result and hasattr(result, 'context_text'):
+                        logger.info(f"GraphRAG查询结果: {result.context_text}")
+                        return result.context_text
+                    else:
+                        logger.warning("GraphRAG查询返回的结果为空或格式不正确")
                         # 回退到NetworkX查询
                         raise Exception("回退到NetworkX查询")
                 except Exception as e:
                     logger.error(f"使用GraphRAG查询时出错: {str(e)}", exc_info=True)
                     # 如果GraphRAG查询失败，回退到NetworkX查询
+                    raise Exception("回退到NetworkX查询")
             
             # 回退到NetworkX查询
             if hasattr(self, 'graph') and self.graph is not None:
-                # 使用简单的关键词匹配查询知识图谱
-                keywords = query_text.lower().split()
-                relevant_nodes = []
+                # 使用NetworkX直接查询
+                # 这是一个简化的实现，只查找与查询文本相关的实体和关系
+                query_keywords = query_text.lower().split()
                 
-                # 查找与关键词匹配的节点
-                for node in self.graph.nodes:
-                    node_text = str(node).lower()
-                    if any(keyword in node_text for keyword in keywords):
-                        node_data = self.graph.nodes[node]
-                        relevant_nodes.append({
-                            "entity": node,
-                            "type": node_data.get("type", "未知"),
-                            "description": node_data.get("description", "无描述")
-                        })
+                # 查找相关节点
+                related_nodes = []
+                for node, data in self.graph.nodes(data=True):
+                    node_text = f"{node} {data.get('description', '')}".lower()
+                    if any(keyword in node_text for keyword in query_keywords):
+                        related_nodes.append(node)
                 
-                # 如果找到了相关节点，查找它们之间的关系
-                relevant_relationships = []
-                if relevant_nodes:
-                    for node_info in relevant_nodes:
-                        node = node_info["entity"]
-                        # 查找以该节点为起点的边
-                        for target in self.graph.successors(node):
-                            edge_data = self.graph.edges[node, target]
-                            relevant_relationships.append({
-                                "source": node,
-                                "target": target,
-                                "description": edge_data.get("description", "无描述"),
-                                "strength": edge_data.get("strength", 0.5)
-                            })
-                        
-                        # 查找以该节点为终点的边
-                        for source in self.graph.predecessors(node):
-                            edge_data = self.graph.edges[source, node]
-                            relevant_relationships.append({
-                                "source": source,
-                                "target": node,
-                                "description": edge_data.get("description", "无描述"),
-                                "strength": edge_data.get("strength", 0.5)
-                            })
+                if not related_nodes:
+                    return "知识图谱查询结果:\n\n未找到与查询相关的实体。\n\n未找到与查询相关的关系。"
+                
+                # 查找相关节点之间的关系
+                related_edges = []
+                for source in related_nodes:
+                    for target in related_nodes:
+                        if source != target and self.graph.has_edge(source, target):
+                            edge_data = self.graph.get_edge_data(source, target)
+                            related_edges.append((source, target, edge_data))
                 
                 # 格式化结果
-                result = "知识图谱查询结果:\n\n"
+                result = "知识图谱查询结果:\n\n相关实体:\n"
+                for node in related_nodes:
+                    node_data = self.graph.nodes[node]
+                    result += f"- {node}: {node_data.get('description', '无描述')}\n"
                 
-                if relevant_nodes:
-                    result += "相关实体:\n"
-                    for node_info in relevant_nodes:
-                        result += f"- {node_info['entity']} (类型: {node_info['type']}): {node_info['description']}\n"
-                    result += "\n"
+                result += "\n相关关系:\n"
+                if related_edges:
+                    for source, target, edge_data in related_edges:
+                        result += f"- {source} -> {target}: {edge_data.get('description', '无描述')}\n"
                 else:
-                    result += "未找到与查询相关的实体。\n\n"
-                
-                if relevant_relationships:
-                    result += "相关关系:\n"
-                    for rel in relevant_relationships:
-                        result += f"- {rel['source']} -> {rel['target']}: {rel['description']} (强度: {rel['strength']})\n"
-                    result += "\n"
-                else:
-                    result += "未找到与查询相关的关系。\n"
+                    result += "未找到相关实体之间的关系。\n"
                 
                 logger.info(f"NetworkX查询结果: {result}")
                 return result
