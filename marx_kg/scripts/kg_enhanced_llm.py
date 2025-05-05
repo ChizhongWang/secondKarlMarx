@@ -173,11 +173,14 @@ class KGEnhancedLLM:
             # 使用自定义配置，只使用DMX API进行嵌入
             self.search_engine = get_local_search_engine(
                 config=config_dict,
+                reports=[],  # 空的报告列表
+                text_units=[],  # 空的文本单元列表
                 entities=entities,
                 relationships=relationships,
-                vector_store=vector_store,
-                callbacks=QueryCallbacks(),
-                use_drift=False
+                covariates={},  # 空的协变量字典
+                response_type="multiple paragraphs",
+                description_embedding_store=vector_store,
+                callbacks=QueryCallbacks()
             )
             
             logger.info("GraphRAG查询引擎初始化完成")
