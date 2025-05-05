@@ -11,6 +11,7 @@ import pickle
 import pandas as pd
 import networkx as nx
 import tiktoken
+import asyncio
 from pathlib import Path
 import argparse
 from typing import List, Dict, Optional, Any, Tuple
@@ -183,9 +184,17 @@ class KGEnhancedLLM:
             if hasattr(self, 'search_engine') and self.search_engine is not None:
                 try:
                     # 使用GraphRAG的本地搜索引擎
-                    result = self.search_engine.search(query_text)
-                    logger.info(f"GraphRAG查询结果: {result.context_text}")
-                    return result.context_text
+                    # 创建一个事件循环来运行异步方法
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        # 在事件循环中运行异步方法
+                        result = loop.run_until_complete(self.search_engine.search(query_text))
+                        logger.info(f"GraphRAG查询结果: {result.context_text}")
+                        return result.context_text
+                    finally:
+                        # 确保关闭事件循环
+                        loop.close()
                 except Exception as e:
                     logger.error(f"使用GraphRAG查询时出错: {str(e)}", exc_info=True)
                     # 如果GraphRAG查询失败，回退到NetworkX查询
