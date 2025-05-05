@@ -31,6 +31,9 @@ from graphrag.index.operations.prune_graph import prune_graph
 from graphrag.index.operations.embed_graph.embed_graph import embed_graph
 from graphrag.index.operations.summarize_descriptions.summarize_descriptions import summarize_descriptions
 
+# 导入常量定义
+from graphrag.config.defaults import DEFAULT_CHAT_MODEL_ID, DEFAULT_EMBEDDING_MODEL_ID
+
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,
@@ -76,13 +79,21 @@ async def build_knowledge_graph():
     # 如果extract_config存在且有entity_types属性，则使用它，否则使用默认值
     entity_types = extract_config.entity_types if extract_config and hasattr(extract_config, 'entity_types') else default_entity_types
     
+    # 获取默认聊天模型配置
+    default_chat_model = config.models[DEFAULT_CHAT_MODEL_ID] if DEFAULT_CHAT_MODEL_ID in config.models else None
+    
+    # 提取策略
+    strategy = None
+    if extract_config and hasattr(extract_config, 'resolved_strategy') and default_chat_model:
+        strategy = extract_config.resolved_strategy(str(PROJECT_ROOT), default_chat_model)
+    
     entities, relationships = await extract_graph(
         text_units=text_units,
         callbacks=callbacks,
         cache=cache,
         text_column="content",
         id_column="id",
-        strategy=extract_config.resolved_strategy(str(PROJECT_ROOT), config.models.default_chat_model) if extract_config else None,
+        strategy=strategy,
         async_mode=AsyncType.AsyncIO,
         entity_types=entity_types,
         num_threads=4
