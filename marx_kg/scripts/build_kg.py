@@ -160,20 +160,28 @@ async def build_knowledge_graph():
     # 获取默认聊天模型配置
     default_chat_model = config.models[DEFAULT_CHAT_MODEL_ID] if DEFAULT_CHAT_MODEL_ID in config.models else None
     
-    # 提取策略
-    strategy = None
-    if extract_config and hasattr(extract_config, 'resolved_strategy') and default_chat_model:
-        strategy = extract_config.resolved_strategy(str(PROJECT_ROOT), default_chat_model)
-        
-        # 添加llm配置到策略中
-        if strategy:
-            strategy["llm"] = {
-                "type": "openai_chat",
-                "model": "gpt-3.5-turbo",
-                "api_key": os.environ.get("DMX_API_KEY"),
-                "api_base": "https://www.dmxapi.cn/v1",
-                "encoding_model": "cl100k_base"
-            }
+    # 创建自定义策略
+    custom_strategy = {
+        "type": "graph_intelligence",
+        "llm": {
+            "type": "openai_chat",
+            "model": "gpt-3.5-turbo",
+            "api_key": os.environ.get("DMX_API_KEY"),
+            "api_base": "https://www.dmxapi.cn/v1",
+            "encoding_model": "cl100k_base",
+            "max_retries": 3,
+            "temperature": 0,
+            "max_tokens": 2048,
+            "request_timeout": 180.0
+        },
+        "entity_name_column": "title",
+        "entity_type_column": "type",
+        "entity_description_column": "description",
+        "source_entity_column": "source",
+        "target_entity_column": "target",
+        "relationship_description_column": "description",
+        "relationship_strength_column": "strength"
+    }
     
     try:
         # 使用API提取实体和关系
@@ -186,7 +194,7 @@ async def build_knowledge_graph():
                 cache=cache,
                 text_column=text_column,
                 id_column=id_column,
-                strategy=strategy,
+                strategy=custom_strategy,
                 async_mode=AsyncType.AsyncIO,
                 entity_types=entity_types,
                 num_threads=4
