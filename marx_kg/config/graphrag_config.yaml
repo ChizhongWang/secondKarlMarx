@@ -54,8 +54,8 @@ extract_graph:
     - WORK_OF_ART
     - CONCEPT
   strategy:
-    prompt_template_path: ${PROJECT_ROOT}/graphrag/graphrag/index/operations/extract_graph/prompts/extract_graph.prompt
-    examples_path: ${PROJECT_ROOT}/graphrag/graphrag/index/operations/extract_graph/prompts/extract_graph_examples.json
+    prompt_template_path: /home/featurize/secondKarlMarx/graphrag/graphrag/index/operations/extract_graph/prompts/extract_graph.prompt
+    examples_path: /home/featurize/secondKarlMarx/graphrag/graphrag/index/operations/extract_graph/prompts/extract_graph_examples.json
     entity_name_column: title
     entity_type_column: type
     entity_description_column: description
@@ -89,10 +89,10 @@ local_search:
 # 路径配置
 paths:
   data:
-    input: ${PROJECT_ROOT}/marx_kg/data/processed/marx_engels_documents.json
-    output: ${PROJECT_ROOT}/marx_kg/data/kg
+    input: /home/featurize/secondKarlMarx/marx_kg/data/processed/marx_engels_documents.json
+    output: /home/featurize/secondKarlMarx/marx_kg/data/kg
   cache:
-    root: ${PROJECT_ROOT}/marx_kg/data/cache
+    root: /home/featurize/secondKarlMarx/marx_kg/data/cache
 
 # 日志配置
 logging:
