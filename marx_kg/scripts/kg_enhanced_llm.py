@@ -152,7 +152,7 @@ class KGEnhancedLLM:
                     )
                     
                     # 为实体描述生成嵌入向量
-                    entity_vector = embedding_model.get_embedding(entity.description)
+                    entity_vector = embedding_model.embed(entity.description)
                     logger.info(f"为实体 '{entity.id}' 生成嵌入向量成功")
                 except Exception as e:
                     # 如果生成嵌入向量失败，使用全0向量作为回退
