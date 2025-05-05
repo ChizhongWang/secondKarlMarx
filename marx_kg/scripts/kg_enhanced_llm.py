@@ -122,11 +122,11 @@ class KGEnhancedLLM:
             # 初始化LanceDB向量存储
             description_embedding_store = LanceDBVectorStore(
                 collection_name="descriptions",
-                db_uri=f"uri://{db_dir}"
+                db_uri=db_dir  # 直接使用文件路径，不添加uri://前缀
             )
             
             # 连接到向量存储
-            description_embedding_store.connect(db_uri=f"uri://{db_dir}")
+            description_embedding_store.connect(db_uri=db_dir)  # 直接使用文件路径
             
             # 由于我们没有实际的社区报告，创建一个空列表
             reports = []
