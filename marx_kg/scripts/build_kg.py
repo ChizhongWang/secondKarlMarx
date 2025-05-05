@@ -23,7 +23,7 @@ from graphrag.cache.pipeline_cache import PipelineCache
 
 # 导入操作函数 - 使用正确的导入路径
 from graphrag.index.operations.extract_graph.extract_graph import extract_graph
-from graphrag.index.operations.embed_text.chunk_text import chunk_text
+from graphrag.index.operations.chunk_text.chunk_text import chunk_text
 from graphrag.index.operations.embed_text.embed_text import embed_text
 from graphrag.index.operations.prune_graph import prune_graph
 from graphrag.index.operations.embed_graph.embed_graph import embed_graph
