@@ -8,6 +8,7 @@ import json
 import logging
 import pandas as pd
 import networkx as nx
+import pickle
 from pathlib import Path
 import asyncio
 
@@ -169,6 +170,17 @@ async def build_knowledge_graph():
         logger.info("使用DMX API提取实体和关系")
         
         try:
+            # 准备策略参数，添加llm配置
+            strategy_args = {
+                "llm": {
+                    "type": "openai_chat",
+                    "model": "gpt-3.5-turbo",
+                    "api_key": os.environ.get("DMX_API_KEY"),
+                    "api_base": "https://www.dmxapi.cn/v1",
+                    "encoding_model": "cl100k_base"
+                }
+            }
+            
             entities, relationships = await extract_graph(
                 text_units=text_units,
                 callbacks=callbacks,
@@ -176,6 +188,7 @@ async def build_knowledge_graph():
                 text_column=text_column,
                 id_column=id_column,
                 strategy=strategy,
+                strategy_args=strategy_args,  # 添加策略参数
                 async_mode=AsyncType.AsyncIO,
                 entity_types=entity_types,
                 num_threads=4
@@ -243,9 +256,10 @@ async def build_knowledge_graph():
     for _, row in relationships.iterrows():
         G.add_edge(row['source'], row['target'], description=row['description'], strength=row['strength'])
     
-    # 保存图谱
-    graph_path = kg_dir / "knowledge_graph.gpickle"
-    nx.write_gpickle(G, graph_path)
+    # 保存图谱 - 使用pickle替代write_gpickle
+    graph_path = kg_dir / "knowledge_graph.pickle"
+    with open(graph_path, 'wb') as f:
+        pickle.dump(G, f)
     logger.info(f"保存知识图谱到: {graph_path}")
     
     return kg_dir
