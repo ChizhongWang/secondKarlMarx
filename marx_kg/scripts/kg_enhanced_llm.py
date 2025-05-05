@@ -371,22 +371,33 @@ class KGEnhancedLLM:
         Returns:
             str: 回答
         """
-        # 构建系统提示
-        system_prompt = "你是一个基于马克思主义理论的助手，专注于回答关于马克思、恩格斯及其著作的问题。"
-        
-        # 如果启用了知识图谱，查询知识图谱
-        kg_result = None
-        if self.use_kg:
-            kg_result = self.query_kg(query_text)
-        
-        # 构建消息
-        messages = [
-            {"role": "system", "content": system_prompt}
-        ]
-        
-        # 如果有知识图谱结果，添加到系统提示中
-        if kg_result:
-            kg_prompt = f"""我将为你提供一些相关的知识图谱信息，这些信息来自马克思恩格斯的著作。
+        try:
+            # 处理输入文本，移除可能导致编码问题的字符
+            query_text = query_text.encode('utf-8', errors='ignore').decode('utf-8')
+            
+            # 查询知识图谱
+            kg_result = None
+            if self.use_kg:
+                kg_result = self.query_kg(query_text)
+            
+            # 构建提示
+            messages = []
+            
+            # 系统消息
+            messages.append({
+                "role": "user", 
+                "content": "你是一个基于马克思主义理论的助手，专注于回答关于马克思、恩格斯及其著作的问题。"
+            })
+            
+            # 添加助手回复
+            messages.append({
+                "role": "assistant",
+                "content": "我是一个基于马克思主义理论的助手，专注于解释马克思和恩格斯的思想。有什么可以帮助您的吗？"
+            })
+            
+            # 如果有知识图谱结果，添加到提示中
+            if kg_result:
+                prompt = f"""我将为你提供一些相关的知识图谱信息，这些信息来自马克思恩格斯的著作。
 请基于这些信息回答用户的问题，同时结合你自己的知识。
 如果知识图谱信息与问题相关，请优先使用这些信息。
 
@@ -394,14 +405,27 @@ class KGEnhancedLLM:
 {kg_result}
 
 请回答以下问题，并明确指出你的回答中哪些部分是基于知识图谱的，哪些是基于你自己的知识的。"""
+                
+                messages.append({
+                    "role": "user",
+                    "content": prompt
+                })
+                
+                messages.append({
+                    "role": "assistant",
+                    "content": "我理解了。我会基于提供的知识图谱信息和我自己的知识来回答问题。"
+                })
             
-            messages.append({"role": "system", "content": kg_prompt})
-        
-        # 添加用户问题
-        messages.append({"role": "user", "content": query_text})
-        
-        # 查询LLM
-        return self.query_llm(messages)
+            # 添加用户问题
+            messages.append({"role": "user", "content": query_text})
+            
+            # 查询LLM - 每次查询都使用新的消息列表，不保留历史
+            return self.query_llm(messages)
+        except Exception as e:
+            logger.error(f"回答问题时出错: {str(e)}", exc_info=True)
+            return f"回答问题时出错: {str(e)}"
+    
+    # ... (其余代码保持不变)
 
 def query_dmx_api(query: str, kg_enhancer: Optional[KGEnhancedLLM] = None) -> str:
     """直接使用DMX API查询，不依赖本地API服务器"""
