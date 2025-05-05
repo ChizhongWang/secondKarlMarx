@@ -231,10 +231,10 @@ class KGEnhancedLLM:
                         # 尝试使用context_builder构建上下文
                         context = self.search_engine.context_builder._build_local_context(
                             query_text,
-                            self.search_engine.config.local_search.top_k_entities,
-                            self.search_engine.config.local_search.top_k_relationships,
-                            self.search_engine.config.local_search.text_unit_prop,
-                            self.search_engine.config.local_search.community_prop,
+                            top_k_entities=15,  # 硬编码参数
+                            top_k_relationships=10,  # 硬编码参数
+                            text_unit_prop=0.6,  # 硬编码参数
+                            community_prop=0.4,  # 硬编码参数
                         )
                         logger.info(f"GraphRAG查询结果: {context}")
                         return context
