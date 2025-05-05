@@ -20,7 +20,8 @@ from graphrag.config.load_config import load_config
 from graphrag.config.enums import AsyncType
 from graphrag.callbacks.noop_workflow_callbacks import NoopWorkflowCallbacks
 from graphrag.callbacks.console_workflow_callbacks import ConsoleWorkflowCallbacks
-from graphrag.cache.pipeline_cache import PipelineCache
+from graphrag.cache.noop_pipeline_cache import NoopPipelineCache
+from graphrag.cache.memory_pipeline_cache import InMemoryCache
 
 # 导入操作函数 - 使用正确的导入路径
 from graphrag.index.operations.extract_graph.extract_graph import extract_graph
@@ -52,7 +53,7 @@ async def build_knowledge_graph():
     
     # 创建回调和缓存
     callbacks = ConsoleWorkflowCallbacks()  # 使用控制台回调，它会在控制台显示进度
-    cache = PipelineCache(config.cache)
+    cache = InMemoryCache()  # 使用内存缓存，不需要传递参数
     
     # 加载处理后的文档
     processed_data_path = PROJECT_ROOT / "data" / "processed" / "marx_engels_documents.json"
