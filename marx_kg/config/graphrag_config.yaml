@@ -5,7 +5,7 @@ models:
   # 聊天模型配置
   default_chat_model:
     type: openai
-    model_name: gpt-3.5-turbo
+    model: gpt-3.5-turbo
     encoding_model: cl100k_base
     api_key: ${DMX_API_KEY}
     api_base: https://www.dmxapi.cn/v1
@@ -15,7 +15,7 @@ models:
   # 嵌入模型配置
   default_embedding_model:
     type: openai
-    model_name: text-embedding-ada-002
+    model: text-embedding-ada-002
     encoding_model: cl100k_base
     api_key: ${DMX_API_KEY}
     api_base: https://www.dmxapi.cn/v1
