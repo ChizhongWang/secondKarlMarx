@@ -3,6 +3,10 @@
 
 echo "启动API服务器..."
 
+# 设置环境变量
+export API_HOST=0.0.0.0
+export API_PORT=8000
+
 # 启动API服务器
 llamafactory-cli api qwen_inference.yaml
 
