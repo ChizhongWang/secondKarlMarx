@@ -115,7 +115,6 @@ class KGEnhancedLLM:
                 relationship = Relationship(
                     id=f"{row['source']}-{row['target']}",  # 使用source-target作为关系ID
                     short_id=f"{row['source']}-{row['target']}",  # 使用source-target作为short_id
-                    title=row.get('description', ''),
                     source=row['source'],
                     target=row['target'],
                     weight=float(row.get('strength', 0.5)),
