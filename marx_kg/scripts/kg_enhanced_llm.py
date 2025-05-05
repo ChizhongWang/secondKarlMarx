@@ -133,8 +133,9 @@ class KGEnhancedLLM:
             for entity in entities:
                 doc = VectorStoreDocument(
                     id=entity.id,
-                    content=entity.description,
-                    metadata={
+                    text=entity.description,
+                    vector=None,
+                    attributes={
                         "title": entity.title,
                         "type": entity.type
                     }
