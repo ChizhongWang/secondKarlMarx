@@ -29,7 +29,7 @@ from graphrag.data_model.relationship import Relationship
 from graphrag.language_model.manager import ModelManager
 from graphrag.query.factory import get_local_search_engine
 from graphrag.callbacks.query_callbacks import QueryCallbacks
-from graphrag.vector_stores.in_memory import InMemoryVectorStore
+from graphrag.vector_stores.lancedb import LanceDBVectorStore
 
 # 配置日志
 logging.basicConfig(
@@ -104,8 +104,20 @@ class KGEnhancedLLM:
             # 创建简单的文本单元
             text_units = []
             
-            # 创建简单的描述嵌入存储
-            description_embedding_store = InMemoryVectorStore()
+            # 创建LanceDB向量存储
+            # 创建临时目录用于LanceDB数据库
+            import tempfile
+            db_dir = tempfile.mkdtemp()
+            logger.info(f"创建LanceDB数据库目录: {db_dir}")
+            
+            # 初始化LanceDB向量存储
+            description_embedding_store = LanceDBVectorStore(
+                collection_name="descriptions",
+                db_uri=f"uri://{db_dir}"
+            )
+            
+            # 连接到向量存储
+            description_embedding_store.connect(db_uri=f"uri://{db_dir}")
             
             # 由于我们没有实际的社区报告，创建一个空列表
             reports = []
