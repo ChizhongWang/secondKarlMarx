@@ -131,10 +131,13 @@ class KGEnhancedLLM:
             # 创建文档集合
             documents = []
             for entity in entities:
+                # 创建一个默认的向量（全0向量）
+                default_vector = [0.0] * 1536  # 使用1536维向量，这是常见的嵌入维度
+                
                 doc = VectorStoreDocument(
                     id=entity.id,
                     text=entity.description,
-                    vector=None,
+                    vector=default_vector,
                     attributes={
                         "title": entity.title,
                         "type": entity.type
