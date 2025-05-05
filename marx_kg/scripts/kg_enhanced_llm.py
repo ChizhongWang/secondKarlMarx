@@ -82,22 +82,22 @@ class KGEnhancedLLM:
             entities = []
             for _, row in entities_df.iterrows():
                 entity = Entity(
-                    id=row['id'],
+                    id=row['title'],  # 使用title作为id
                     title=row['title'],
                     type=row['type'],
                     description=row['description'],
-                    document_id=row.get('document_id', '')
+                    document_id=''  # 没有document_id，使用空字符串
                 )
                 entities.append(entity)
             
             relationships = []
             for _, row in relationships_df.iterrows():
                 relationship = Relationship(
-                    id=row['id'],
+                    id=f"{row['source']}-{row['target']}",  # 使用source-target作为id
                     source=row['source'],
                     target=row['target'],
                     description=row['description'],
-                    document_id=row.get('document_id', '')
+                    document_id=''  # 没有document_id，使用空字符串
                 )
                 relationships.append(relationship)
             
@@ -260,33 +260,58 @@ class KGEnhancedLLM:
             str: LLM回复
         """
         try:
-            logger.info(f"查询LLM: {messages}")
+            # 确保消息格式符合LLaMA Factory API的要求
+            # 只支持用户(user)和助手(assistant)交替的消息
+            formatted_messages = []
             
-            payload = {
-                "model": "Qwen2.5-7B-Instruct",
-                "messages": messages,
-                "temperature": 0.7,
-                "max_tokens": 1024
-            }
+            # 如果第一条消息是系统消息，将其内容添加到第一条用户消息前面
+            if messages and messages[0]["role"] == "system":
+                system_content = messages[0]["content"]
+                # 找到第一条用户消息
+                user_idx = next((i for i, m in enumerate(messages) if m["role"] == "user"), None)
+                if user_idx is not None:
+                    messages[user_idx]["content"] = f"{system_content}\n\n{messages[user_idx]['content']}"
             
+            # 过滤掉所有系统消息，只保留用户和助手消息
+            for msg in messages:
+                if msg["role"] in ["user", "assistant"]:
+                    formatted_messages.append(msg)
+            
+            # 确保消息列表以用户消息开始
+            if not formatted_messages or formatted_messages[0]["role"] != "user":
+                logger.warning("消息列表必须以用户消息开始，添加一个空的用户消息")
+                formatted_messages.insert(0, {"role": "user", "content": "你好"})
+            
+            # 确保用户和助手消息交替出现
+            final_messages = [formatted_messages[0]]  # 从第一条用户消息开始
+            for i in range(1, len(formatted_messages)):
+                if formatted_messages[i]["role"] != final_messages[-1]["role"]:
+                    final_messages.append(formatted_messages[i])
+                else:
+                    # 如果连续两条消息角色相同，合并它们
+                    logger.warning(f"发现连续的{formatted_messages[i]['role']}消息，合并内容")
+                    final_messages[-1]["content"] += f"\n\n{formatted_messages[i]['content']}"
+            
+            # 发送请求
+            logger.info(f"发送请求到LLM API: {self.llm_api_url}")
             response = requests.post(
                 self.llm_api_url,
-                headers={"Content-Type": "application/json"},
-                json=payload
+                json={
+                    "model": "Qwen2.5-7B-Instruct",
+                    "messages": final_messages,
+                    "temperature": 0.7
+                },
+                headers={"Content-Type": "application/json"}
             )
             
-            if response.status_code != 200:
-                logger.error(f"LLM API返回错误: {response.status_code} {response.text}")
-                return f"LLM API错误: {response.status_code}"
-                
+            response.raise_for_status()
             result = response.json()
-            content = result["choices"][0]["message"]["content"]
-            logger.info(f"LLM回复: {content}")
             
-            return content
+            # 返回LLM回复
+            return result["choices"][0]["message"]["content"]
         except Exception as e:
-            logger.error(f"查询LLM时出错: {str(e)}", exc_info=True)
-            return f"查询LLM时出错: {str(e)}"
+            logger.error(f"LLM API返回错误: {str(e)}")
+            return f"LLM API错误: {str(e)}"
     
     def answer(self, query_text):
         """回答问题
