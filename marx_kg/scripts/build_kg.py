@@ -68,8 +68,13 @@ async def build_knowledge_graph():
     
     # 提取图谱
     logger.info("步骤1: 提取实体和关系")
-    extract_config = config.extract_graph if hasattr(config, 'extract_graph') else {}
-    entity_types = extract_config.get('entity_types', ["PERSON", "ORGANIZATION", "LOCATION", "WORK_OF_ART", "EVENT", "DATE", "CONCEPT"])
+    extract_config = config.extract_graph if hasattr(config, 'extract_graph') else None
+    
+    # 默认的实体类型
+    default_entity_types = ["PERSON", "ORGANIZATION", "LOCATION", "WORK_OF_ART", "EVENT", "DATE", "CONCEPT"]
+    
+    # 如果extract_config存在且有entity_types属性，则使用它，否则使用默认值
+    entity_types = extract_config.entity_types if extract_config and hasattr(extract_config, 'entity_types') else default_entity_types
     
     entities, relationships = await extract_graph(
         text_units=text_units,
@@ -77,7 +82,7 @@ async def build_knowledge_graph():
         cache=cache,
         text_column="content",
         id_column="id",
-        strategy=extract_config,
+        strategy=extract_config.resolved_strategy(str(PROJECT_ROOT), config.models.default_chat_model) if extract_config else None,
         async_mode=AsyncType.AsyncIO,
         entity_types=entity_types,
         num_threads=4
@@ -111,10 +116,17 @@ async def build_knowledge_graph():
     
     # 修剪图谱
     logger.info("步骤3: 修剪图谱")
-    prune_config = config.prune_graph if hasattr(config, 'prune_graph') else {}
-    min_node_freq = prune_config.get('min_node_freq', 1)
-    min_node_degree = prune_config.get('min_node_degree', 1)
-    min_edge_weight_pct = prune_config.get('min_edge_weight_pct', 40)
+    prune_config = config.prune_graph if hasattr(config, 'prune_graph') else None
+    
+    # 默认的修剪配置
+    default_min_node_freq = 1
+    default_min_node_degree = 1
+    default_min_edge_weight_pct = 40
+    
+    # 如果prune_config存在且有对应属性，则使用它，否则使用默认值
+    min_node_freq = prune_config.min_node_freq if prune_config and hasattr(prune_config, 'min_node_freq') else default_min_node_freq
+    min_node_degree = prune_config.min_node_degree if prune_config and hasattr(prune_config, 'min_node_degree') else default_min_node_degree
+    min_edge_weight_pct = prune_config.min_edge_weight_pct if prune_config and hasattr(prune_config, 'min_edge_weight_pct') else default_min_edge_weight_pct
     
     pruned_graph = prune_graph(
         graph=G,
