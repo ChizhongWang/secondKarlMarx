@@ -1,0 +1,57 @@
+root_dir: "d:/王驰中的经历/研究生/研一下课程/自然语言处理/secondKarlMarx"
+
+models:
+  default_chat_model:
+    model: "gpt-4"
+    type: "openai_chat"
+    auth_type: "api_key"
+    api_key: "sk-ZhF2CPvVSjuqOZOk5n2fbancon1CTyxWzS1TtQx84JB5GQOY"
+    api_base: "https://www.dmxapi.cn/v1"
+  
+  default_embedding_model:
+    model: "text-embedding-ada-002"
+    type: "openai_embedding"
+    auth_type: "api_key"
+    api_key: "sk-ZhF2CPvVSjuqOZOk5n2fbancon1CTyxWzS1TtQx84JB5GQOY"
+    api_base: "https://www.dmxapi.cn/v1"
+
+input:
+  type: "file"
+  file_type: "json"
+  base_dir: "d:/王驰中的经历/研究生/研一下课程/自然语言处理/secondKarlMarx/test_chunks"
+  file_pattern: "*.json"
+  encoding: "utf-8"
+  text_column: "raw_text"
+  metadata:
+    - "metadata"
+
+vector_store:
+  default:
+    type: "lancedb"
+    db_uri: "d:/王驰中的经历/研究生/研一下课程/自然语言处理/secondKarlMarx/lancedb"
+    collection_name: "marx_test"
+
+chunks:
+  strategy: "tokens"
+  size: 10000
+  overlap: 0
+  group_by_columns: ["id"]
+  encoding_model: "cl100k_base"
+  prepend_metadata: false
+  chunk_size_includes_metadata: false
+
+extract_graph:
+  max_nodes_per_doc: 50
+  max_triplets_per_doc: 100
+  
+extract_graph_nlp:
+  text_analyzer:
+    extractor_type: "regex_english"
+    noun_phrase_extractor: "syntactic_parser"
+  
+output:
+  type: "file"
+  base_dir: "d:/王驰中的经历/研究生/研一下课程/自然语言处理/secondKarlMarx/graphrag_output"
+
+reporting:
+  type: "console"
