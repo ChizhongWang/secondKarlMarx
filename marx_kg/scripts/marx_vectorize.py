@@ -16,6 +16,7 @@ import time
 import httpx
 import numpy as np
 import lancedb
+import pyarrow as pa
 from tqdm import tqdm
 import argparse
 import logging
@@ -130,18 +131,22 @@ class MarxVectorizer:
             
             # 检查表是否存在
             if "marx_texts" not in db.table_names():
-                schema = {
-                    "id": "string",
-                    "vector": f"float32[{self.vector_dim}]",
-                    "text": "string",
-                    "volume": "string",
-                    "article_number": "string",
-                    "title": "string",
-                    "chunk_id": "string",
-                    "parent_article": "string",
-                    "chunk_type": "string"
-                }
-                table = db.create_table("marx_texts", schema=schema)
+                # 创建PyArrow的Schema对象
+                schema = pa.schema([
+                    pa.field("id", pa.string()),
+                    pa.field("vector", pa.list_(pa.float32(), self.vector_dim)),
+                    pa.field("text", pa.string()),
+                    pa.field("volume", pa.string()),
+                    pa.field("article_number", pa.string()),
+                    pa.field("title", pa.string()),
+                    pa.field("chunk_id", pa.string()),
+                    pa.field("parent_article", pa.string()),
+                    pa.field("chunk_type", pa.string())
+                ])
+                
+                # 创建空表
+                empty_table = pa.Table.from_pylist([], schema=schema)
+                table = db.create_table("marx_texts", data=empty_table)
                 logger.info(f"创建新表: marx_texts")
             else:
                 table = db.open_table("marx_texts")
